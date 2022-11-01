@@ -1,10 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit, ViewEncapsulation} from '@angular/core';
 import {F_DataEntry} from "../../models/formatted-data-entry";
 import {R_DataEntry} from "../../models/raw-data-entry";
 import * as d3 from 'd3';
 
 @Component({
   selector: 'app-barchart',
+  encapsulation: ViewEncapsulation.None,
   templateUrl: './barchart.component.html',
   styleUrls: ['./barchart.component.css']
 })
@@ -28,6 +29,8 @@ export class BarchartComponent implements OnInit {
   private angleRanges: Iterable<string>;
   private colorGenerator: d3.ScaleOrdinal<string, unknown>;
   private readonly stackGenerator: d3.Stack<any, { [key: string]: number; }, string>;
+  private stackData: any;
+  // private areaStackData: any[];
 
   constructor() {
     this.width = 600;
@@ -46,6 +49,7 @@ export class BarchartComponent implements OnInit {
     this.angleRanges = [];
     this.colorGenerator = d3.scaleOrdinal();
     this.stackGenerator = d3.stack();
+    // this.areaStackData = [];
 
     this.formatRawData();
 
@@ -81,13 +85,51 @@ export class BarchartComponent implements OnInit {
     this.xScale.range([0, this.width])
       .padding(0.3);
 
+    // Add range to yScale
+    this.yScale.range([this.height, 0])
+
+    // Extract Range from Data
+    const range: string[] = this.getRange();
+
+    // Sort the Data
+    this.sortData();
+
+    // Bar Chart Sections (i.e. green, yellow, red, gray)
+    this.angleRanges = Object.keys(this.data[0]).slice(1, 5);
+
+    // Add Domain to X Scale
+    this.xScale.domain(range)
+
+    // Create ColorGenerator in this.colorGenerator(key)
+    this.initColors();
+
+    // Create StackGenerator in this.stackGenerator(data)
+    this.initStack();
+
+    // Call Stack Generator on our data
+    // @ts-ignore
+    this.stackData = this.stackGenerator(this.data)
+
+    this.drawBarChart();
+  }
+
+  drawBarChart() {
+    const xScale: d3.ScaleBand<string> = this.xScale;
+    const yScale: d3.ScaleLinear<number, number> = this.yScale;
+
+    if(this.svg == undefined)
+      return;
+
     // Append X-Axis
     this.xAxis = this.svg.append('g')
       .attr('class', 'axis')
       .attr('transform', `translate(0, ${this.height})`)
 
-    // Add range to yScale
-    this.yScale.range([this.height, 0])
+    // Add Domain to Axis Labels
+    this.xAxis
+      .call(d3.axisBottom(this.xScale).tickSizeOuter(0))
+      .selectAll('text')
+      .each((d) => {console.log(d)});
 
     // Append Y-Axis
     this.yAxis = this.svg.append("g")
@@ -100,49 +142,12 @@ export class BarchartComponent implements OnInit {
       .attr("text-anchor", "end")
       .text("Angle Percentages")
 
-    this.onDataLoaded();
-  }
-
-  onDataLoaded() {
-    if(!this.xAxis || !this.yAxis || !this.svg)
-      return;
-
-    // Extract Range from Data
-    const range = this.getRange();
-
-    // Sort the Data
-    this.sortData();
-
-    // Bar Chart Sections (i.e. green, yellow, red, gray)
-    this.angleRanges = Object.keys(this.data[0]).slice(1, 5);
-
-    // Add Domain to X Scale
-    this.xScale.domain(range)
-
-    // Add Domain to Axis Labels
-    this.xAxis
-      .call(d3.axisBottom(this.xScale).tickSizeOuter(0))
-      .selectAll('text')
-      .each((d) => {console.log(d)});
-
-    // Create ColorGenerator in this.colorGenerator(key)
-    this.createColors();
-
-    // Create StackGenerator in this.stackGenerator(data)
-    this.createStack();
-
-    // Call Stack Generator on our data
-    // @ts-ignore
-    const stackData = this.stackGenerator(this.data)
-
-    const xScale = this.xScale, yScale = this.yScale;
-
     // Append bar plot to svg the bars
     this.svg.append("g")
       .selectAll("g")
-      .data(stackData)
+      .data(this.stackData)
       .enter().append("g")
-      .attr("fill", (d: d3.Series<{[p: string]: number}, string>) => (this.colorGenerator(d.key)) as string)
+      .attr("fill", (d: any) => (this.colorGenerator(d.key)) as string)
       .selectAll("rect")
       .data(function(d: any) { return d; })
       .enter().append("rect")
@@ -152,13 +157,21 @@ export class BarchartComponent implements OnInit {
       .attr("width", this.xScale.bandwidth());
   }
 
+  // drawBarAreaChart() {
+  //   this.drawBarChart();
+  //
+  //   this.stackData.forEach((d: any, i: number) => {
+  //     this.areaStackData[i] = [];
+  //   })
+  // }
+
   private formatRawData() {
-    for(let i = 0; i < this.raw_data.length; i++){
-      let date = new Date(+this.raw_data[i].video_year,+this.raw_data[i].video_month-1);
-      let total_percent = +this.raw_data[i].percent_green + +this.raw_data[i].percent_yellow + +this.raw_data[i].percent_red
-      let new_green = +this.raw_data[i].percent_green/total_percent;
-      let new_yellow = +this.raw_data[i].percent_yellow/total_percent;
-      let new_red = +this.raw_data[i].percent_red/total_percent;
+    for(let i: number = 0; i < this.raw_data.length; i++){
+      const date: Date = new Date(+this.raw_data[i].video_year,+this.raw_data[i].video_month-1);
+      const total_percent: number = +this.raw_data[i].percent_green + +this.raw_data[i].percent_yellow + +this.raw_data[i].percent_red
+      const new_green: number = +this.raw_data[i].percent_green/total_percent;
+      const new_yellow: number = +this.raw_data[i].percent_yellow/total_percent;
+      const new_red: number = +this.raw_data[i].percent_red/total_percent;
       this.data.push({"date": this.formatDate(date), "green": new_green, "yellow": new_yellow, "red": new_red, "gray": 0});
     }
 
@@ -169,14 +182,14 @@ export class BarchartComponent implements OnInit {
 
 
   // Add data to this.colorGenerator()
-  private createColors(): void {
+  private initColors(): void {
     this.colorGenerator
       .domain(this.angleRanges)
       .range(['#54F53E', '#E5F401', '#F55048', '#AAAAAA'])
   }
 
   // Add data to this.stackGenerator()
-  private createStack(): void {
+  private initStack(): void {
     this.stackGenerator
       .keys(this.angleRanges);
   }
@@ -217,8 +230,9 @@ export class BarchartComponent implements OnInit {
 
   // Add all Months without any data
   private FillEmptyMonths(){
-    let begin, end, new_entries: {index: number, string: string}[] = [];
-    for(let i = 0; i < this.data.length - 1; i++){
+    let begin: Date, end: Date;
+    const new_entries: {index: number, string: string}[] = [];
+    for(let i: number = 0; i < this.data.length - 1; i++){
       begin = new Date(this.data[i].date);
       end = new Date(this.data[i+1].date);
       if(this.dateToInt(begin) + 1 != this.dateToInt(end)){
@@ -231,7 +245,7 @@ export class BarchartComponent implements OnInit {
         }
       }
     }
-    for(let i = 0; i < new_entries.length; i++){
+    for(let i: number = 0; i < new_entries.length; i++){
       this.data.splice(new_entries[i].index, 0, {
         date: new_entries[i].string,
         green: 0,
@@ -246,8 +260,8 @@ export class BarchartComponent implements OnInit {
   //  Input: List of Data_Entries
   //  Output: List of formatted dates
   private getRange(): string[] {
-    let range: string[] = [];
-    for(let i = 0; i < this.data.length; i++){
+    const range: string[] = [];
+    for(let i: number = 0; i < this.data.length; i++){
       range.push(this.data[i].date);
     }
     return range;
@@ -256,15 +270,15 @@ export class BarchartComponent implements OnInit {
   // Insert line break for multiple month strings
   // i.e. May 2022 - Aug 2022 -> May 2022 -
   //                            Aug 2022
-  private insertLinebreaks(d: string) {
-    const el = d3.select(d);
-    const words = d.split('\n');
-    el.text('');
-
-    for (let i = 0; i < words.length; i++) {
-      const tspan = el.append('tspan').text(words[i]);
-      if (i > 0)
-        tspan.attr('x', 0).attr('dy', '15');
-    }
-  };
+  // private insertLinebreaks(d: string) {
+  //   const el = d3.select(d);
+  //   const words = d.split('\n');
+  //   el.text('');
+  //
+  //   for (let i: number = 0; i < words.length; i++) {
+  //     const tspan = el.append('tspan').text(words[i]);
+  //     if (i > 0)
+  //       tspan.attr('x', 0).attr('dy', '15');
+  //   }
+  // };
 }

@@ -7,7 +7,7 @@ import { BarchartComponent } from './components/barchart/barchart.component';
 @NgModule({
   declarations: [
     AppComponent,
-    BarchartComponent
+    BarchartComponent,
   ],
   imports: [
     BrowserModule
