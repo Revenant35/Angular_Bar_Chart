@@ -46,7 +46,7 @@ body {
   font-family: 'Comfortaa', cursive;
 }
 
-#chart {
+.bar-chart {
   min-width: 600px;
   min-height: 240px;
   width: 100%;

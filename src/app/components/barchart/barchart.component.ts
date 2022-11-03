@@ -1,6 +1,6 @@
 import {Component, OnInit, ViewEncapsulation} from '@angular/core';
-import {F_DataEntry} from "../../models/formatted-data-entry";
-import {R_DataEntry} from "../../models/raw-data-entry";
+import {F_DataEntry} from "./formatted-data-entry";
+import {R_DataEntry} from "./raw-data-entry";
 import * as d3 from 'd3';
 
 @Component({
@@ -11,11 +11,10 @@ import * as d3 from 'd3';
 })
 
 export class BarchartComponent implements OnInit {
-  public title = 'Bar Chart'
   public data: F_DataEntry[];
   private raw_data: R_DataEntry[];
   private readonly margin: any = {top: 65, right: 80, bottom: 40, left: 60};
-  private readonly selector: string = '#chart';
+  private readonly selector: string = '.bar-chart';
   private height: number;
   private width: number;
   private bgColor: string = 'none';
@@ -75,11 +74,11 @@ export class BarchartComponent implements OnInit {
     // Create SVG, Append to (selector)
     this.svg = d3.select(this.selector)
       .append('svg')
-      .style('width', '100%')
-      .style('height', this.height + this.margin.top + this.margin.bottom)
-      .style('background-color', this.bgColor)
+        .style('width', this.width + this.margin.left + this.margin.right)
+        .style('height', this.height + this.margin.top + this.margin.bottom)
+        .style('background-color', this.bgColor)
       .append('g')
-      .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
+        .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
 
     // Add range to xScale
     this.xScale.range([0, this.width])
@@ -128,8 +127,7 @@ export class BarchartComponent implements OnInit {
     // Add Domain to Axis Labels
     this.xAxis
       .call(d3.axisBottom(this.xScale).tickSizeOuter(0))
-      .selectAll('text')
-      .each((d) => {console.log(d)});
+      .selectAll('text');
 
     // Append Y-Axis
     this.yAxis = this.svg.append("g")
@@ -270,15 +268,15 @@ export class BarchartComponent implements OnInit {
   // Insert line break for multiple month strings
   // i.e. May 2022 - Aug 2022 -> May 2022 -
   //                            Aug 2022
-  // private insertLinebreaks(d: string) {
-  //   const el = d3.select(d);
-  //   const words = d.split('\n');
-  //   el.text('');
-  //
-  //   for (let i: number = 0; i < words.length; i++) {
-  //     const tspan = el.append('tspan').text(words[i]);
-  //     if (i > 0)
-  //       tspan.attr('x', 0).attr('dy', '15');
-  //   }
-  // };
+  private insertLinebreaks(d: string): void {
+    const el = d3.select(d);
+    const words = d.split('\n');
+    el.text('');
+
+    for (let i: number = 0; i < words.length; i++) {
+      const tspan = el.append('tspan').text(words[i]);
+      if (i > 0)
+        tspan.attr('x', 0).attr('dy', '15');
+    }
+  };
 }
