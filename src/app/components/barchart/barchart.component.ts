@@ -1,4 +1,4 @@
-import {Component, OnInit, ViewEncapsulation} from '@angular/core';
+import {Component, Input, OnInit, ViewEncapsulation} from '@angular/core';
 import {F_DataEntry} from "./formatted-data-entry";
 import {R_DataEntry} from "./raw-data-entry";
 import * as d3 from 'd3';
@@ -11,272 +11,362 @@ import * as d3 from 'd3';
 })
 
 export class BarchartComponent implements OnInit {
-  public data: F_DataEntry[];
-  private raw_data: R_DataEntry[];
-  private readonly margin: any = {top: 65, right: 80, bottom: 40, left: 60};
-  private readonly selector: string = '.bar-chart';
-  private height: number;
-  private width: number;
-  private bgColor: string = 'none';
-  private formatDate: any = d3.timeFormat('%b %Y'); // Mar 2022
-  private formatPercent: any = d3.format(".0%"); // 100%
-  private readonly xScale: d3.ScaleBand<string>;
-  private readonly yScale: d3.ScaleLinear<number, number>;
-  private xAxis: d3.Selection<any, any, any, any> | undefined;
-  private yAxis: d3.Selection<any, any, any, any> | undefined;
-  private svg: d3.Selection<any, any, any, any> | undefined;
-  private angleRanges: Iterable<string>;
-  private colorGenerator: d3.ScaleOrdinal<string, unknown>;
-  private readonly stackGenerator: d3.Stack<any, { [key: string]: number; }, string>;
-  private stackData: any;
-  // private areaStackData: any[];
 
-  constructor() {
-    this.width = 600;
-    this.height = 400;
+  // Inputs
+  @Input('data') public raw_data: R_DataEntry[] = [];
+  @Input ('title') public title: string = '[Joint Angle]';
+  @Input('selector') public selector: string = '.bar-chart';
 
-    this.data = [];
-    this.raw_data = [
-      { "video_year": 2021, "video_month": 9, "percent_green": 0.6437994722955145,  "percent_yellow": 0.35620052770448546,  "percent_red": 0},
-      { "video_year": 2021, "video_month": 10, "percent_green": 0.33801540552786585, "percent_yellow": 0.24920706841866785,  "percent_red": 0.4127775260534662 },
-      { "video_year": 2021, "video_month": 11, "percent_green": 0.39681637293917,    "percent_yellow": 0.549175667993178,    "percent_red": 0.05400795906765208 },
-      { "video_year": 2022, "video_month": 1, "percent_green": 0.7893611968653527,  "percent_yellow": 0.1862977914984564,   "percent_red": 0.02434101163619093 },
-      { "video_year": 2022, "video_month": 2, "percent_green": 0.27847005683130194, "percent_yellow": 0.19828658857692494,  "percent_red": 0.5232433545917733 },
-      { "video_year": 2022, "video_month": 3, "percent_green": 0.6239431856611432,  "percent_yellow": 0.35306053432532974,  "percent_red": 0.022996280013527225 },
-    ];
+  // Data Arrays
+  public readonly data: F_DataEntry[] = [];
+  private readonly barData: {bar: number[][], date: string}[] = [];
+  private readonly areaData: {barL: number[][], xL: number, barR: number[][], xR: number}[] = [];
 
-    this.angleRanges = [];
-    this.colorGenerator = d3.scaleOrdinal();
-    this.stackGenerator = d3.stack();
-    // this.areaStackData = [];
+  // Screen Settings
+  private height: number = 0;
+  private width: number = 0;
+  private innerHeight: number = 0;
+  private innerWidth: number = 0;
+  private readonly margin: any = {top: 75, right: 90, bottom: 45, left: 60};
 
-    this.formatRawData();
+  // Scales
+  private readonly xScale: d3.ScaleBand<string> = d3.scaleBand();
+  private readonly yScale: d3.ScaleLinear<number, number> = d3.scaleLinear();
 
-    // Define X-Scale
-    this.xScale = d3.scaleBand()
-      .padding(0.15)
+  // Axes
+  private readonly xAxis: d3.Axis<string> = d3.axisBottom(this.xScale);
+  private readonly yAxis: d3.Axis<d3.NumberValue> = d3.axisLeft(this.yScale);
 
-    // Define Y-Scale
-    this.yScale = d3.scaleLinear()
-      .domain([0,1])
+  // Const Lists
+  private readonly MONTHS: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  private readonly angleRanges: string[] = ['green', 'yellow', 'red'];
+  private readonly labels: string[] = ['Safe', 'Mild Risk', 'High Risk'];
 
-    // Set depencencies to undefined until we load them
-    this.xAxis = undefined;
-    this.yAxis = undefined;
-    this.svg = undefined;
-  }
+  // Generators
+  private main_colorGenerator: d3.ScaleOrdinal<string, unknown> = d3.scaleOrdinal();
+  private secondary_colorGenerator: d3.ScaleOrdinal<string, unknown> = d3.scaleOrdinal();
+  private readonly stackGenerator: d3.Stack<any, { [key: string]: number; }, string> = d3.stack();
+
+  //TODO: implement Tooltip
+  // Tooltip
+  // private tooltip: any;
+
+  // Colors
+  private main_colors: string[] = ['#60D394', '#FFD97D', '#EE6055'];
+  private secondary_colors: string[] = ['#9FE5BE', '#FFE099', '#F2857D'];
+  private bgColor: string = '#FFFFFF';
+
+  // SVG Elements
+  private svg: d3.Selection<any, any, any, any> | undefined = undefined;
+  private svg_data: d3.Selection<any, any, any, any> | undefined = undefined;
+  private svg_legend: d3.Selection<any, any, any, any> | undefined = undefined;
+
+  constructor() {}
 
   ngOnInit(): void {
-    this.width = parseInt(d3.select(this.selector).style('width').replace('px', '')) - this.margin.left - this.margin.right;
-    this.height = parseInt(d3.select(this.selector).style('height').replace('px', '')) - this.margin.top - this.margin.bottom;
 
-    // SVG CONSTRUCTION
-    // Create SVG, Append to (selector)
-    this.svg = d3.select(this.selector)
-      .append('svg')
-        .style('width', this.width + this.margin.left + this.margin.right)
-        .style('height', this.height + this.margin.top + this.margin.bottom)
-        .style('background-color', this.bgColor)
-      .append('g')
-        .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
+    // Initialize this.height & this.width from DOM
+    this.width = parseInt(d3.select(this.selector).style('width').replace('px', ''));
+    this.height = parseInt(d3.select(this.selector).style('height').replace('px', ''));
 
-    // Add range to xScale
-    this.xScale.range([0, this.width])
-      .padding(0.3);
+    // Initialize this.innerHeight & this.innerWidth from DOM
+    this.innerWidth = this.width - this.margin.left - this.margin.right;
+    this.innerHeight = this.height - this.margin.top - this.margin.bottom;
 
-    // Add range to yScale
-    this.yScale.range([this.height, 0])
 
-    // Extract Range from Data
-    const range: string[] = this.getRange();
-
-    // Sort the Data
-    this.sortData();
-
-    // Bar Chart Sections (i.e. green, yellow, red, gray)
-    this.angleRanges = Object.keys(this.data[0]).slice(1, 5);
-
-    // Add Domain to X Scale
-    this.xScale.domain(range)
-
-    // Create ColorGenerator in this.colorGenerator(key)
-    this.initColors();
-
-    // Create StackGenerator in this.stackGenerator(data)
-    this.initStack();
-
-    // Call Stack Generator on our data
-    // @ts-ignore
-    this.stackData = this.stackGenerator(this.data)
-
-    this.drawBarChart();
-  }
-
-  drawBarChart() {
-    const xScale: d3.ScaleBand<string> = this.xScale;
-    const yScale: d3.ScaleLinear<number, number> = this.yScale;
-
-    if(this.svg == undefined)
-      return;
-
-    // Append X-Axis
-    this.xAxis = this.svg.append('g')
-      .attr('class', 'axis')
-      .attr('transform', `translate(0, ${this.height})`)
-
-    // Add Domain to Axis Labels
-    this.xAxis
-      .call(d3.axisBottom(this.xScale).tickSizeOuter(0))
-      .selectAll('text');
-
-    // Append Y-Axis
-    this.yAxis = this.svg.append("g")
-      .attr("class", "axis")
-      .call(d3.axisLeft(this.yScale).tickFormat(x => `${this.formatPercent(x)}`))
-      .append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("x", -5)
-      .attr("y", -40)
-      .attr("text-anchor", "end")
-      .text("Angle Percentages")
-
-    // Append bar plot to svg the bars
-    this.svg.append("g")
-      .selectAll("g")
-      .data(this.stackData)
-      .enter().append("g")
-      .attr("fill", (d: any) => (this.colorGenerator(d.key)) as string)
-      .selectAll("rect")
-      .data(function(d: any) { return d; })
-      .enter().append("rect")
-      .attr("x", (d: any) => (xScale(d.data.date)) as number )
-      .attr("y", (d: any) => (yScale(d[1])) as number)
-      .attr("height", (d: any) => (yScale(d[0]) - yScale(d[1])) as number)
-      .attr("width", this.xScale.bandwidth());
-  }
-
-  // drawBarAreaChart() {
-  //   this.drawBarChart();
-  //
-  //   this.stackData.forEach((d: any, i: number) => {
-  //     this.areaStackData[i] = [];
-  //   })
-  // }
-
-  private formatRawData() {
+    // Format this.rawData and place it into this.data
     for(let i: number = 0; i < this.raw_data.length; i++){
-      const date: Date = new Date(+this.raw_data[i].video_year,+this.raw_data[i].video_month-1);
-      const total_percent: number = +this.raw_data[i].percent_green + +this.raw_data[i].percent_yellow + +this.raw_data[i].percent_red
-      const new_green: number = +this.raw_data[i].percent_green/total_percent;
-      const new_yellow: number = +this.raw_data[i].percent_yellow/total_percent;
-      const new_red: number = +this.raw_data[i].percent_red/total_percent;
-      this.data.push({"date": this.formatDate(date), "green": new_green, "yellow": new_yellow, "red": new_red, "gray": 0});
+      const total_percent: number = +this.raw_data[i].percent_green + +this.raw_data[i].percent_yellow + +this.raw_data[i].percent_red;
+      this.data.push({
+        date: d3.timeFormat('%b %Y')(new Date(+this.raw_data[i].video_year,+this.raw_data[i].video_month-1)),
+        green: +this.raw_data[i].percent_green/total_percent,
+        yellow: +this.raw_data[i].percent_yellow/total_percent,
+        red: +this.raw_data[i].percent_red/total_percent
+      });
     }
 
-    this.sortData();
-    this.FillEmptyMonths();
-    this.sortData();
-  }
+    // Sort this.data[]
+    this.data.sort((a: F_DataEntry, b: F_DataEntry) => this.dateToInt(a.date) - this.dateToInt(b.date))
 
 
-  // Add data to this.colorGenerator()
-  private initColors(): void {
-    this.colorGenerator
+    // Create this.svg on this.selector
+    this.svg = d3.select(this.selector)
+      .append('svg')
+        .style('width', this.width)
+        .style('height', this.height)
+        .style('background-color', this.bgColor)
+        .append('g')
+          .attr('width', this.innerWidth)
+          .attr('height', this.innerHeight)
+          .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
+
+    //  Add title to this.svg
+    this.svg
+      .append('text')
+        .attr('x', (this.innerWidth / 2))
+        .attr('y', 0 - (this.margin.top / 2))
+        .attr('text-anchor', 'middle')
+        .attr('class', 'title')
+        .text(this.title);
+
+    // Add this.svg_legend to this.svg
+    this.svg_legend = this.svg.append('g')
+        .attr('class', 'legend')
+
+    for(let i = 0; i < 3; i++){
+      this.svg_legend
+        .append('circle')
+          .style('fill', this.main_colors[i])
+          .attr('cx', this.innerWidth + 13)
+          .attr('cy', this.innerHeight / 2 - 20 * i)
+          .attr('r', '.3em')
+
+      this.svg_legend
+        .append('text')
+          .attr('x', this.innerWidth + 21)
+          .attr('y', this.innerHeight / 2 + 4 - 20 * i)
+          .text(this.labels[i])
+    }
+
+
+    // Format this.xScale
+    this.xScale
+      .range([0, this.innerWidth])
+      .paddingOuter(0.05)
+      .paddingInner(0.333)
+      .align(0.5)
+      .domain(this.data.map(a => a.date))
+
+    // Format this.yScale
+    this.yScale
+      .domain([0,1])
+      .range([this.innerHeight, 0])
+
+    // Format this.xAxis
+    this.xAxis
+      .tickSizeInner(8)
+      .tickSizeOuter(0)
+      .tickPadding(4)
+      .offset(-.5)
+
+    // Format this.yAxis
+    this.yAxis
+      .tickFormat(d3.format(".0%"))
+      .tickSizeInner(-this.innerWidth)
+      .tickSizeOuter(0)
+      .tickPadding(5)
+      .offset(-.5)
+      .tickValues([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1])
+
+
+    // Append this.xAxis to this.svg
+    this.svg
+      .append('g')
+        .attr('class', 'x axis')
+        .attr('transform', `translate(0, ${this.innerHeight+1})`)
+        .call(this.xAxis)
+
+    // Append this.yAxis w/ label to this.svg
+    this.svg.append("g")
+      .attr("class", "y axis")
+      .attr('transform', 'translate(0, 1)')
+      .call(this.yAxis)
+      .append("text")
+        .attr('class', "y label")
+        .attr("text-anchor", "middle")
+        .attr("y", -this.margin.left / 2 - 10)
+        .attr("x", -this.innerHeight / 2 + 8)
+        .attr("transform", "rotate(-90)")
+        .text("Angle Percentages")
+
+
+    // TODO: Create Tooltip
+    // // TOOLTIP CREATION
+    // this.svg
+    //   .append("g")
+    //     .attr('class', 'tooltip')
+    //     .style("position", "relative")
+    //     .style("visibility", "hidden")
+    //     .append('rect')
+    //       .style('width', '100px')
+    //       .style('height', '100px')
+    //       .style('fill', 'white')
+    //       .append('text')
+    //         .style('width', '100px')
+    //         .style('height', '100px')
+    //         .text("NaN");
+    //
+    // this.tooltip = this.svg.select('.tooltip');
+
+    // .append('div')
+      //   .attr('class', 'tooltip')
+      //   .style('position', 'absolute')
+      //   .style('visibility', 'hidden')
+      //   .attr("width", 30)
+      //   .attr("height", 20)
+      //   .attr("fill", "white")
+      //   .style("opacity", 1)
+      //   .attr("x", 15)
+      //   .attr("dy", "1.2em")
+      //   .style("text-anchor", "middle")
+      //   .attr("font-size", "12px")
+      //   .attr("font-weight", "bold");
+
+
+    // Create main_color ColorGenerator
+    this.main_colorGenerator
       .domain(this.angleRanges)
-      .range(['#54F53E', '#E5F401', '#F55048', '#AAAAAA'])
-  }
+      .range(this.main_colors)
 
-  // Add data to this.stackGenerator()
-  private initStack(): void {
+    // Create secondary_color ColorGenerator
+    this.secondary_colorGenerator
+      .domain(this.angleRanges)
+      .range(this.secondary_colors)
+
+    // Create StackGenerator
     this.stackGenerator
       .keys(this.angleRanges);
+
+
+    // Generate bars for all items in this.data
+    for(let i = 0; i < this.data.length; i++){
+      this.barData[i] = {bar: [], date: ''};
+      this.barData[i].bar = new Array(3);
+
+      const green = this.data[i].green;
+      const yellow = green + this.data[i].yellow;
+      const red = yellow + this.data[i].red;
+
+      this.barData[i].bar[0] = [0, green];
+      this.barData[i].bar[1] = [green, yellow];
+      this.barData[i].bar[2] = [yellow, red];
+
+      this.barData[i].date = this.data[i].date;
+    }
+
+    // generate areas for all items with this.data[i] && this.data[i+1]
+    for(let i = 0; i < this.data.length-1; i++){
+      if(this.incrementMonth(this.data[i].date) === this.data[i+1].date){
+        this.areaData.push({
+          barL: this.barData[i].bar,
+          barR: this.barData[i+1].bar,
+          xL: this.xScale(this.data[i].date)! + this.xScale.bandwidth() - 1,
+          xR: this.xScale(this.data[i+1].date)! - this.xScale.padding() + 1
+        })
+      }
+    }
+
+    // Create this.svg_data in this.svg
+    this.svg_data = this.svg.append('g')
+      .attr('class', 'data')
+
+    // Populate bars on this.svg_data
+    for(let i = 0; i < this.barData.length; i++){
+      const col = this.svg_data.append('g');
+      for(let j = 0; j < 3; j++){
+        col.append('rect')
+          .attr('x', this.xScale(this.barData[i].date) as number )
+          .attr('y', this.yScale(this.barData[i].bar[j][1]) as number)
+          .attr('height', (this.yScale(this.barData[i].bar[j][0]) - this.yScale(this.barData[i].bar[j][1])) + 'px' as string)
+          .attr('width', (this.xScale.bandwidth()) + 'px' as string)
+          .attr('fill', this.main_colorGenerator(this.angleRanges[j]) as string)
+          .attr('percent', () => {
+            if(j == 0){
+              return (d3.format(".2%")(this.barData[i].bar[j][1])) as string
+            } else {
+              return (d3.format(".2%")(this.barData[i].bar[j][1] - this.barData[i].bar[j-1][1])) as string
+            }
+          });
+      }
+    }
+
+
+    let cursor: string = this.data[0].date;
+    let i: number = 0, areas = 0;
+
+    while(cursor !== this.data[this.data.length - 1].date){
+      if(cursor !== this.data[i].date){ // Add breaks to the chart
+          const col = this.svg_data.append('g');
+          col.append('path')
+              .attr('d', () => {
+                const path = d3.path();
+                const x_rad: number = this.xScale.bandwidth() * this.xScale.padding()/8
+                const x: number = this.xScale(this.decrementMonth(cursor))! + this.xScale.bandwidth() + (this.xScale.bandwidth() / 4);
+                path.moveTo(x, this.yScale(0));
+                for(let i = 0; i < 16; i++){
+                  path.lineTo(x+x_rad, this.yScale(0.015625 + (.0625 * i)));
+                  path.lineTo(x, this.yScale(0.03125 + (.0625 * i)));
+                  path.lineTo(x-x_rad, this.yScale(0.046875 + (.0625 * i)));
+                  path.lineTo(x, this.yScale((.0625 * (i+1))));
+                }
+                path.moveTo(x, this.yScale(0))
+                path.closePath();
+                return path.toString();
+              })
+            .attr('class','break')
+          cursor = this.data[i].date;
+      }
+      if(this.incrementMonth(cursor) == this.data[i+1].date){ // Add areas to the chart
+        const col = this.svg_data.append('g');
+        for(let j = 0; j < 3; j++){
+          col.append('path')
+            .attr('d', () => {
+              const path = d3.path();
+              path.moveTo(this.areaData[areas].xL, this.yScale(this.areaData[areas].barL[j][0]));
+              path.lineTo(this.areaData[areas].xR, this.yScale(this.areaData[areas].barR[j][0]));
+              path.lineTo(this.areaData[areas].xR, this.yScale(this.areaData[areas].barR[j][1]));
+              path.lineTo(this.areaData[areas].xL, this.yScale(this.areaData[areas].barL[j][1]));
+              path.closePath();
+              return path.toString();
+            })
+            .attr('stroke', 'none')
+            .attr('fill', this.secondary_colors[j])
+        }
+        areas++;
+      }
+      cursor = this.incrementMonth(cursor);
+      i++;
+    }
   }
+
 
   // Converts a DateTime to an integer for arithmetic reasons
   // Only precise to the month
-  private dateToInt(date: Date): number {
-    return date.getFullYear() * 12 + date.getMonth();
+  //  String must be of format 'Dec 2021'
+  private dateToInt(date: string): number {
+    let month: string = date.slice(0, 3)
+    let year: number = Number.parseInt(date.slice(4, 8))
+    const index: number = this.MONTHS.indexOf(month);
+
+    if(index == -1)
+      return -1;
+
+    return year * 12 + index;
   }
 
-  // Sort a list of DataEntries based on Date
-  // Only precise to the month
-  private sortData(){
-    this.data.sort((a: F_DataEntry, b: F_DataEntry) => this.dateToInt(new Date(a.date)) - this.dateToInt(new Date(b.date)))
+  // Increments a string date by 1 month
+  //  String must be of format 'Dec 2021'
+  private incrementMonth(date: string): string {
+    let month: string = date.slice(0, 3)
+    let year: number = Number.parseInt(date.slice(4, 8))
+    const index: number = this.MONTHS.indexOf(month);
+
+    if(index == -1)
+      return 'Jan 1970';
+
+    return (index == 11) ? `${this.MONTHS[0]} ${++year}` : `${this.MONTHS[index+1]} ${year}`;
   }
 
-  // Increments a Date by 1 month
-  private incrementMonth(date: Date): Date {
-    if(date.getMonth() == 11) {
-      date.setMonth(0);
-      date.setFullYear(date.getFullYear() + 1);
-    } else {
-      date.setMonth(date.getMonth() + 1);
-    }
-    return date;
+  // Decrements a string date ('Dec 2021') by 1 month
+  //  String must be of format 'Dec 2021'
+  private decrementMonth(date: string): string {
+    let month: string = date.slice(0, 3)
+    let year: number = Number.parseInt(date.slice(4, 8))
+    const index: number = this.MONTHS.indexOf(month);
+
+    if(index == -1)
+      return 'Jan 1970';
+
+    return (index == 0) ? `${this.MONTHS[11]} ${--year}` : `${this.MONTHS[index-1]} ${year}`;
   }
-
-  // Decrements a Date by 1 month
-  private decrementMonth(date: Date): Date {
-    if(date.getMonth() == 0){
-      date.setMonth(11);
-      date.setFullYear(date.getFullYear() - 1);
-    } else {
-      date.setMonth(date.getMonth() - 1);
-    }
-    return date;
-  }
-
-  // Add all Months without any data
-  private FillEmptyMonths(){
-    let begin: Date, end: Date;
-    const new_entries: {index: number, string: string}[] = [];
-    for(let i: number = 0; i < this.data.length - 1; i++){
-      begin = new Date(this.data[i].date);
-      end = new Date(this.data[i+1].date);
-      if(this.dateToInt(begin) + 1 != this.dateToInt(end)){
-        this.incrementMonth(begin);
-        this.decrementMonth(end);
-        if(this.dateToInt(begin) == this.dateToInt(end)){
-          new_entries.push({index: i+1, string: `${this.formatDate(begin)}`})
-        } else {
-          new_entries.push({index: i+1, string: `${this.formatDate(begin)}-\n${this.formatDate(end)}`})
-        }
-      }
-    }
-    for(let i: number = 0; i < new_entries.length; i++){
-      this.data.splice(new_entries[i].index, 0, {
-        date: new_entries[i].string,
-        green: 0,
-        yellow: 0,
-        red: 0,
-        gray: 1
-      });
-    }
-  }
-
-  // Get the range of the data on data.date
-  //  Input: List of Data_Entries
-  //  Output: List of formatted dates
-  private getRange(): string[] {
-    const range: string[] = [];
-    for(let i: number = 0; i < this.data.length; i++){
-      range.push(this.data[i].date);
-    }
-    return range;
-  }
-
-  // Insert line break for multiple month strings
-  // i.e. May 2022 - Aug 2022 -> May 2022 -
-  //                            Aug 2022
-  private insertLinebreaks(d: string): void {
-    const el = d3.select(d);
-    const words = d.split('\n');
-    el.text('');
-
-    for (let i: number = 0; i < words.length; i++) {
-      const tspan = el.append('tspan').text(words[i]);
-      if (i > 0)
-        tspan.attr('x', 0).attr('dy', '15');
-    }
-  };
 }
