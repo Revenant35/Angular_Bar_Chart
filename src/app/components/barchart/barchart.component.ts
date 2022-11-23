@@ -53,7 +53,7 @@ export class BarchartComponent implements OnInit {
 
   // Colors
   private main_colors: string[] = ['#60D394', '#FFD97D', '#EE6055'];
-  private secondary_colors: string[] = ['#9FE5BE', '#FFE099', '#F2857D'];
+  private secondary_colors: string[] = ['#BFEDD4', '#FFEDC2', '#F7BBB5'];
   private bgColor: string = '#FFFFFF';
 
   // SVG Elements
