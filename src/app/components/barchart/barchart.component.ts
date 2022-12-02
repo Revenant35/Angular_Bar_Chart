@@ -13,134 +13,170 @@ import * as d3 from 'd3';
 export class BarchartComponent implements OnInit {
 
   // Inputs
-  @Input('data') public raw_data: R_DataEntry[] = [];
-  @Input ('title') public title: string = '[Joint Angle]';
-  @Input('selector') public selector: string = '.bar-chart';
+  @Input('data') public raw_data: R_DataEntry[];
+  @Input ('title') public title: string;
+  @Input('selector') public selector: string;
 
   // Data Arrays
-  public readonly data: F_DataEntry[] = [];
-  private readonly barData: {bar: number[][], date: string}[] = [];
-  private readonly areaData: {barL: number[][], xL: number, barR: number[][], xR: number}[] = [];
+  public readonly data: F_DataEntry[];
+  private readonly barData: {bar: number[][], date: string}[];
+  private readonly areaData: {barL: number[][], xL: number, barR: number[][], xR: number}[];
 
   // Screen Settings
-  private height: number = 0;
-  private width: number = 0;
-  private innerHeight: number = 0;
-  private innerWidth: number = 0;
-  private readonly margin: any = {top: 75, right: 90, bottom: 45, left: 60};
+  private height: number;
+  private width: number;
+  private innerHeight: number;
+  private innerWidth: number;
+  private left: number;
+  private top: number;
+  private readonly margin: {top: number, left: number, right: number, bottom: number};
 
   // Scales
-  private readonly xScale: d3.ScaleBand<string> = d3.scaleBand();
-  private readonly yScale: d3.ScaleLinear<number, number> = d3.scaleLinear();
+  private readonly xScale: d3.ScaleBand<string>;
+  private readonly yScale: d3.ScaleLinear<number, number>;
 
   // Axes
-  private readonly xAxis: d3.Axis<string> = d3.axisBottom(this.xScale);
-  private readonly yAxis: d3.Axis<d3.NumberValue> = d3.axisLeft(this.yScale);
+  private readonly xAxis: d3.Axis<string>;
+  private readonly yAxis: d3.Axis<d3.NumberValue>;
 
   // Const Lists
-  private readonly MONTHS: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  private readonly angleRanges: string[] = ['green', 'yellow', 'red'];
-  private readonly labels: string[] = ['Safe', 'Mild Risk', 'High Risk'];
+  private readonly MONTHS: string[];
+  private readonly angleRanges: string[];
+  private readonly labels: string[];
 
   // Generators
-  private main_colorGenerator: d3.ScaleOrdinal<string, unknown> = d3.scaleOrdinal();
-  private secondary_colorGenerator: d3.ScaleOrdinal<string, unknown> = d3.scaleOrdinal();
-  private readonly stackGenerator: d3.Stack<any, { [key: string]: number; }, string> = d3.stack();
+  private main_colorGenerator: d3.ScaleOrdinal<string, unknown>;
+  private secondary_colorGenerator: d3.ScaleOrdinal<string, unknown>;
+  private readonly stackGenerator: d3.Stack<any, { [key: string]: number; }, string>;
 
   //TODO: implement Tooltip
   // Tooltip
   // private tooltip: any;
 
   // Colors
-  private main_colors: string[] = ['#60D394', '#FFD97D', '#EE6055'];
-  private secondary_colors: string[] = ['#BFEDD4', '#FFEDC2', '#F7BBB5'];
-  private bgColor: string = '#FFFFFF';
+  private readonly main_colors: string[];
+  private readonly secondary_colors: string[];
 
   // SVG Elements
-  private svg: d3.Selection<any, any, any, any> | undefined = undefined;
-  private svg_data: d3.Selection<any, any, any, any> | undefined = undefined;
-  private svg_legend: d3.Selection<any, any, any, any> | undefined = undefined;
+  private svg: d3.Selection<any, any, any, any> | undefined;
 
-  constructor() {}
+  private isInitialized: boolean;
+
+  constructor() {
+    // Inputs
+    this.raw_data = [];
+    this.title = '[Joint Angle]';
+    this.selector = '.bar-chart';
+
+    // Data Arrays
+    this.data = [];
+    this.barData = [];
+    this.areaData = [];
+
+    // Screen Settings
+    this.height = 320;
+    this.width = 960;
+    this.innerHeight = 200;
+    this.innerWidth = 810;
+    this.left = 50;
+    this.top = 50;
+    this.margin = {top: 75, right: 90, bottom: 45, left: 60};
+
+    // Scales
+    this.xScale = d3.scaleBand();
+    this.yScale = d3.scaleLinear();
+
+    // Axes
+    this.xAxis = d3.axisBottom(this.xScale);
+    this.yAxis = d3.axisLeft(this.yScale);
+
+    // Const Lists
+    this.MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    this.angleRanges = ['green', 'yellow', 'red'];
+    this.labels = ['Safe', 'Mild Risk', 'High Risk'];
+
+    // Generators
+    this.main_colorGenerator = d3.scaleOrdinal();
+    this.secondary_colorGenerator = d3.scaleOrdinal();
+    this.stackGenerator = d3.stack();
+
+    //TODO: implement Tooltip
+    // Tooltip
+    // private tooltip: any;
+
+    // Colors
+    this.main_colors = ['#60D394', '#FFD97D', '#EE6055'];
+    this.secondary_colors = ['#BFEDD4', '#FFF3D6', '#F7BBB5'];
+
+    // SVG Elements
+    this.svg = undefined;
+
+    this.isInitialized = false;
+  }
 
   ngOnInit(): void {
 
-    // Initialize this.height & this.width from DOM
-    this.width = parseInt(d3.select(this.selector).style('width').replace('px', ''));
-    this.height = parseInt(d3.select(this.selector).style('height').replace('px', ''));
-
-    // Initialize this.innerHeight & this.innerWidth from DOM
-    this.innerWidth = this.width - this.margin.left - this.margin.right;
-    this.innerHeight = this.height - this.margin.top - this.margin.bottom;
-
-
-    // Format this.rawData and place it into this.data
-    for(let i: number = 0; i < this.raw_data.length; i++){
-      const total_percent: number = +this.raw_data[i].percent_green + +this.raw_data[i].percent_yellow + +this.raw_data[i].percent_red;
-      this.data.push({
-        date: d3.timeFormat('%b %Y')(new Date(+this.raw_data[i].video_year,+this.raw_data[i].video_month-1)),
-        green: +this.raw_data[i].percent_green/total_percent,
-        yellow: +this.raw_data[i].percent_yellow/total_percent,
-        red: +this.raw_data[i].percent_red/total_percent
-      });
-    }
-
-    // Sort this.data[]
-    this.data.sort((a: F_DataEntry, b: F_DataEntry) => this.dateToInt(a.date) - this.dateToInt(b.date))
-
-
-    // Create this.svg on this.selector
+    // Create SVG in selector
     this.svg = d3.select(this.selector)
-      .append('svg')
-        .style('width', this.width)
-        .style('height', this.height)
-        .style('background-color', this.bgColor)
-        .append('g')
-          .attr('width', this.innerWidth)
-          .attr('height', this.innerHeight)
-          .attr('transform', `translate(${this.margin.left}, ${this.margin.top})`)
+      .select('svg')
+        .attr('preserveAspectRatio', 'xMinYMin meet')
+        .attr('viewBox', '0 0 960 320')
 
-    //  Add title to this.svg
+    // Populate Title
     this.svg
-      .append('text')
-        .attr('x', (this.innerWidth / 2))
-        .attr('y', 0 - (this.margin.top / 2))
+      .select('.title')
+        .append('text')
+        .attr('x', '50%')
+        .attr('y', '40px')
         .attr('text-anchor', 'middle')
-        .attr('class', 'title')
         .text(this.title);
 
-    // Add this.svg_legend to this.svg
-    this.svg_legend = this.svg.append('g')
-        .attr('class', 'legend')
+    // Populate Legend
+    this.svg.select('.legend')
+      .append('text')
+      .attr('x', this.margin.left + this.innerWidth + (this.margin.right/2))
+      .attr('y', this.margin.top + (this.innerHeight/2) - 25)
+      .style('font-size', '12px')
+      .attr('text-anchor', 'middle')
+      .text('Legend');
 
+    // Add text/circles to legend
     for(let i = 0; i < 3; i++){
-      this.svg_legend
-        .append('circle')
-          .style('fill', this.main_colors[i])
-          .attr('cx', this.innerWidth + 13)
-          .attr('cy', this.innerHeight / 2 - 20 * i)
-          .attr('r', '.3em')
+      const g = this.svg.select('.legend').append('g');
 
-      this.svg_legend
-        .append('text')
-          .attr('x', this.innerWidth + 21)
-          .attr('y', this.innerHeight / 2 + 4 - 20 * i)
-          .text(this.labels[i])
+      g.append('circle')
+        .style('fill', this.main_colors[i])
+        .attr('cx', this.width - this.margin.right + 15)
+        .attr('cy', this.margin.top + (this.innerHeight/2) + 5 + (15 * (i-1)))
+        .attr('r', '.25em')
+
+      g.append('text')
+        .attr('x', this.innerWidth + this.margin.left + 24)
+        .attr('y', this.margin.top + 6 + (this.innerHeight/2) + 4 +  (15 * (i-1)))
+        .text(this.labels[i])
     }
-
 
     // Format this.xScale
     this.xScale
-      .range([0, this.innerWidth])
+      .range([this.margin.left, this.innerWidth + this.margin.left])
       .paddingOuter(0.05)
       .paddingInner(0.333)
       .align(0.5)
-      .domain(this.data.map(a => a.date))
 
     // Format this.yScale
     this.yScale
       .domain([0,1])
-      .range([this.innerHeight, 0])
+      .range([this.innerHeight + this.margin.top, this.margin.top])
+
+    this.svg.append('g')
+      .attr('class', 'y label')
+      .append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", 25)
+        .attr("x", - this.margin.top - this.innerHeight / 2)
+        .attr("transform", "rotate(-90)")
+        .text("Angle Percentages")
+
 
     // Format this.xAxis
     this.xAxis
@@ -157,28 +193,6 @@ export class BarchartComponent implements OnInit {
       .tickPadding(5)
       .offset(-.5)
       .tickValues([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1])
-
-
-    // Append this.xAxis to this.svg
-    this.svg
-      .append('g')
-        .attr('class', 'x axis')
-        .attr('transform', `translate(0, ${this.innerHeight+1})`)
-        .call(this.xAxis)
-
-    // Append this.yAxis w/ label to this.svg
-    this.svg.append("g")
-      .attr("class", "y axis")
-      .attr('transform', 'translate(0, 1)')
-      .call(this.yAxis)
-      .append("text")
-        .attr('class', "y label")
-        .attr("text-anchor", "middle")
-        .attr("y", -this.margin.left / 2 - 10)
-        .attr("x", -this.innerHeight / 2 + 8)
-        .attr("transform", "rotate(-90)")
-        .text("Angle Percentages")
-
 
     // TODO: Create Tooltip
     // // TOOLTIP CREATION
@@ -199,19 +213,18 @@ export class BarchartComponent implements OnInit {
     // this.tooltip = this.svg.select('.tooltip');
 
     // .append('div')
-      //   .attr('class', 'tooltip')
-      //   .style('position', 'absolute')
-      //   .style('visibility', 'hidden')
-      //   .attr("width", 30)
-      //   .attr("height", 20)
-      //   .attr("fill", "white")
-      //   .style("opacity", 1)
-      //   .attr("x", 15)
-      //   .attr("dy", "1.2em")
-      //   .style("text-anchor", "middle")
-      //   .attr("font-size", "12px")
-      //   .attr("font-weight", "bold");
-
+    //   .attr('class', 'tooltip')
+    //   .style('position', 'absolute')
+    //   .style('visibility', 'hidden')
+    //   .attr("width", 30)
+    //   .attr("height", 20)
+    //   .attr("fill", "white")
+    //   .style("opacity", 1)
+    //   .attr("x", 15)
+    //   .attr("dy", "1.2em")
+    //   .style("text-anchor", "middle")
+    //   .attr("font-size", "12px")
+    //   .attr("font-weight", "bold");
 
     // Create main_color ColorGenerator
     this.main_colorGenerator
@@ -227,6 +240,64 @@ export class BarchartComponent implements OnInit {
     this.stackGenerator
       .keys(this.angleRanges);
 
+    this.isInitialized = true;
+
+    this.ngOnChanges();
+  }
+
+  ngOnChanges(): void {
+
+    // Ensure DOM is ready
+    if(!this.isInitialized){
+      return
+    }
+
+    // Ensure svg is defined
+    if(this.svg === undefined)
+      this.svg = d3.select(this.selector).select('svg')
+
+    // Clear Data
+    this.data.length = 0;
+    this.barData.length = 0;
+    this.areaData.length = 0;
+
+    // Remove pre-existing DOM elements
+    this.svg.select('.x.axis').remove()
+    this.svg.select('.y.axis').remove()
+    this.svg.select('.data').remove()
+
+    // Format raw data, store in data
+    for(let i: number = 0; i < this.raw_data.length; i++){
+      const total_percent: number = +this.raw_data[i].percent_green + +this.raw_data[i].percent_yellow + +this.raw_data[i].percent_red;
+      this.data.push({
+        date: d3.timeFormat('%b %Y')(new Date(+this.raw_data[i].video_year,+this.raw_data[i].video_month-1)),
+        green: +this.raw_data[i].percent_green/total_percent,
+        yellow: +this.raw_data[i].percent_yellow/total_percent,
+        red: +this.raw_data[i].percent_red/total_percent
+      });
+    }
+
+    // Sort formatted data
+    this.data.sort((a: F_DataEntry, b: F_DataEntry) => this.dateToInt(a.date) - this.dateToInt(b.date))
+
+    // Add domain to xScale
+    this.xScale
+      .domain(this.data.map(a => a.date))
+
+    // Append x-axis
+    this.svg
+      .append('g')
+      .attr('class', 'x axis')
+      .attr('transform', `translate(0, ${this.innerHeight + this.margin.top})`)
+      .call(this.xAxis)
+      .selectAll('.tick text')
+      .call(wrap, this.xScale.bandwidth());
+
+    // Append this.yAxis to this.svg
+    this.svg.append("g")
+      .attr("class", "y axis")
+      .attr('transform', `translate(${this.margin.left}, 0)`)
+      .call(this.yAxis)
 
     // Generate bars for all items in this.data
     for(let i = 0; i < this.data.length; i++){
@@ -256,17 +327,18 @@ export class BarchartComponent implements OnInit {
       }
     }
 
-    // Create this.svg_data in this.svg
-    this.svg_data = this.svg.append('g')
-      .attr('class', 'data')
+    this.svg.append('g').attr('class', 'data')
 
-    // Populate bars on this.svg_data
+    // Populate bars on this.svg.select('.data')
     for(let i = 0; i < this.barData.length; i++){
-      const col = this.svg_data.append('g');
+      const col = this.svg.select('.data')
+        .append('g')
+        .attr('class', 'bar');
+
       for(let j = 0; j < 3; j++){
         col.append('rect')
           .attr('x', this.xScale(this.barData[i].date) as number )
-          .attr('y', this.yScale(this.barData[i].bar[j][1]) as number)
+          .attr('y', this.yScale(this.barData[i].bar[j][1]) - 1 as number)
           .attr('height', (this.yScale(this.barData[i].bar[j][0]) - this.yScale(this.barData[i].bar[j][1])) + 'px' as string)
           .attr('width', (this.xScale.bandwidth()) + 'px' as string)
           .attr('fill', this.main_colorGenerator(this.angleRanges[j]) as string)
@@ -284,48 +356,77 @@ export class BarchartComponent implements OnInit {
     let cursor: string = this.data[0].date;
     let i: number = 0, areas = 0;
 
-    while(cursor !== this.data[this.data.length - 1].date){
+    while(cursor !== this.data[this.data.length - 1].date && i < this.data.length){
       if(cursor !== this.data[i].date){ // Add breaks to the chart
-          const col = this.svg_data.append('g');
-          col.append('path')
-              .attr('d', () => {
-                const path = d3.path();
-                const x_rad: number = this.xScale.bandwidth() * this.xScale.padding()/8
-                const x: number = this.xScale(this.decrementMonth(cursor))! + this.xScale.bandwidth() + (this.xScale.bandwidth() / 4);
-                path.moveTo(x, this.yScale(0));
-                for(let i = 0; i < 16; i++){
-                  path.lineTo(x+x_rad, this.yScale(0.015625 + (.0625 * i)));
-                  path.lineTo(x, this.yScale(0.03125 + (.0625 * i)));
-                  path.lineTo(x-x_rad, this.yScale(0.046875 + (.0625 * i)));
-                  path.lineTo(x, this.yScale((.0625 * (i+1))));
-                }
-                path.moveTo(x, this.yScale(0))
-                path.closePath();
-                return path.toString();
-              })
-            .attr('class','break')
-          cursor = this.data[i].date;
+        const col = this.svg.select('.data').append('g');
+        col.append('path')
+          .attr('d', () => {
+            const path = d3.path();
+            const x_rad: number = this.xScale.bandwidth() * this.xScale.padding()/8
+            const x: number = this.xScale(this.decrementMonth(cursor))! + this.xScale.bandwidth() + (this.xScale.bandwidth() / 4);
+            path.moveTo(x, this.yScale(0));
+            for(let i = 0; i < 16; i++){
+              path.lineTo(x+x_rad, this.yScale(0.015625 + (.0625 * i)));
+              path.lineTo(x, this.yScale(0.03125 + (.0625 * i)));
+              path.lineTo(x-x_rad, this.yScale(0.046875 + (.0625 * i)));
+              path.lineTo(x, this.yScale((.0625 * (i+1))));
+            }
+            path.moveTo(x, this.yScale(0))
+            path.closePath();
+            return path.toString();
+          })
+          .attr('class','break')
+        cursor = this.data[i].date;
       }
-      if(this.incrementMonth(cursor) == this.data[i+1].date){ // Add areas to the chart
-        const col = this.svg_data.append('g');
-        for(let j = 0; j < 3; j++){
+      if(i != this.data.length - 1 && this.incrementMonth(cursor) == this.data[i+1].date){ // Add areas to the chart
+        const col = this.svg.select('.data').append('g');
+        for(let j: number = 0; j < 3; j++){
           col.append('path')
             .attr('d', () => {
               const path = d3.path();
-              path.moveTo(this.areaData[areas].xL, this.yScale(this.areaData[areas].barL[j][0]));
-              path.lineTo(this.areaData[areas].xR, this.yScale(this.areaData[areas].barR[j][0]));
-              path.lineTo(this.areaData[areas].xR, this.yScale(this.areaData[areas].barR[j][1]));
-              path.lineTo(this.areaData[areas].xL, this.yScale(this.areaData[areas].barL[j][1]));
+              path.moveTo(this.areaData[areas].xL + 1, this.yScale(this.areaData[areas].barL[j][0]) - 1);
+              path.lineTo(this.areaData[areas].xR - 0.5, this.yScale(this.areaData[areas].barR[j][0]) - 1);
+              path.lineTo(this.areaData[areas].xR - 0.5, this.yScale(this.areaData[areas].barR[j][1]) - 1);
+              path.lineTo(this.areaData[areas].xL + 1, this.yScale(this.areaData[areas].barL[j][1]) - (j == 0 ? 0.5 : 1));
               path.closePath();
               return path.toString();
             })
-            .attr('stroke', 'none')
+            .attr('class', 'area')
             .attr('fill', this.secondary_colors[j])
         }
         areas++;
       }
       cursor = this.incrementMonth(cursor);
       i++;
+    }
+
+    // FUNCTIONS
+    function wrap(text: { each: (arg0: () => void) => void; }, width: number) {
+      text.each(function() {
+        //@ts-ignore
+        let text: d3.Selection<any, unknown, null, undefined> = d3.select(this);
+        let words: string[] = text.text().split(/\s+/).reverse();
+        let word;
+        let line: string[] = [];
+        let lineNumber: number = 0;
+        let lineHeight: number = 1.1;
+        let y: string = text.attr('y');
+        let dy: number = parseFloat(text.attr('dy'));
+        let tspan: d3.Selection<SVGTSpanElement, unknown, null, undefined> = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em")
+
+        while (word = words.pop()) {
+          line.push(word)
+          tspan.text(line.join(" "))
+          // @ts-ignore
+          if (tspan.node().getComputedTextLength() > width) {
+            line.pop()
+            tspan.text(line.join(" "))
+            line = [word]
+            tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", `${++lineNumber * lineHeight + dy}em`).text(word)
+          }
+        }
+
+      })
     }
   }
 

@@ -2,10 +2,10 @@
 
 
 body {
-  margin: 0;
+  /*margin: 0;*/
   min-height: calc(100vh - 100px);
   min-width: calc(100vw - 100px);
-  padding: 50px;
+  margin: 50px;
 
   background-color: darkgray;
 }
@@ -14,17 +14,21 @@ body {
 /* General */
 text {
   font-family: 'Comfortaa', cursive;
+  fill: black;
 }
 
-.title {
+.y.label text {
+  font-size: 12px;
+}
+
+.title text{
   fill:  black;
   font-size: 24px;
 }
 
-.bar-chart {
-  min-width: 600px;
-  min-height: 300px;
-  width: 100%;
+/* Legend */
+.legend text{
+  font-size: 10px;
 }
 
 ::selection {
@@ -38,22 +42,22 @@ text {
   shape-rendering: crispEdges;
 }
 
-.x.axis line {
-  stroke: black;
-}
-
 .y.axis line{
   stroke: lightgray;
 }
 
 .axis text{
-  font-size: 12px;
+  font-size: 10px;
+}
+
+.area {
+  stroke: none;
+  opacity: 70%;
 }
 
 
-/* Legend */
-.legend text{
-  font-size: 12px;
+.barchart {
+  background-color: #FFFFFF
 }
 
 .break {
@@ -63,10 +67,10 @@ text {
 }
 
 
-/*!* Tooltip *!*/
-/*.tooltip {*/
-/*  width: 50px;*/
-/*  height: 20px;*/
-/*  min-width: 50px;*/
-/*  min-height: 20px;*/
-/*}*/
+/*!*!* Tooltip *!*!*/
+/*!*.tooltip {*!*/
+/*!*  width: 50px;*!*/
+/*!*  height: 20px;*!*/
+/*!*  min-width: 50px;*!*/
+/*!*  min-height: 20px;*!*/
+/*!*}*!*/
