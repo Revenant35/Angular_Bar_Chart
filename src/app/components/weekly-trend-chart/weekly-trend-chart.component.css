@@ -1,0 +1,137 @@
+@import 'https://fonts.googleapis.com/css2?family=Comfortaa:wght@300';
+
+.weekly-trend-chart text{
+  font-family: 'Comfortaa', cursive;
+  fill: black;
+  font-size: 1em;
+}
+
+.weekly-trend-chart  {
+  background-color: #FFFFFF;
+}
+
+.weekly-trend-chart ::selection {
+  background: lightblue;
+}
+
+.weekly-trend-chart .y.axis,
+.weekly-trend-chart .x.axis,
+.weekly-trend-chart .y.label,
+.weekly-trend-chart .legend,
+.weekly-trend-chart .popup,
+.weekly-trend-chart .data {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+
+.weekly-trend-chart .title text{
+  font-size: 1.5em;
+  transform: translate(50%, 1.5em);
+  text-anchor: middle;
+}
+
+
+
+.weekly-trend-chart .legend {
+  transform: translate(calc(100% - 45px), 50%);
+  text-anchor: middle;
+}
+
+.weekly-trend-chart .legend>text {
+  transform: translateX(-10px);
+  font-size: 1em;
+}
+
+.weekly-trend-chart .legend g {
+  text-anchor: start;
+  font-size: .75em;
+}
+
+
+
+.weekly-trend-chart .y.label text{
+  font-size: 12px;
+  text-anchor: middle;
+  rotate: 270deg;
+}
+
+
+
+.weekly-trend-chart .popup text {
+  font-size: 8px;
+  font-weight: bold;
+  text-anchor: middle;
+  visibility: hidden;
+}
+
+.weekly-trend-chart .popup rect {
+  visibility: hidden;
+  fill: #FFFFFF;
+}
+
+
+/* AXES */
+.weekly-trend-chart .y.axis line{
+  stroke: lightgray;
+}
+
+.weekly-trend-chart .y.axis text{
+  font-size: 10px;
+}
+
+.weekly-trend-chart .axis path,
+.weekly-trend-chart .axis line {
+  stroke-width: 0.5px;
+}
+
+.weekly-trend-chart .x.axis text {
+  font-size: 10px;
+}
+/********/
+
+/* DATA */
+.weekly-trend-chart .columns .group .item {
+  stroke: none;
+  opacity: 100%;
+}
+
+.weekly-trend-chart .areas .group .item {
+  stroke: none;
+  opacity: 70%;
+}
+
+.weekly-trend-chart .breaks .group .item {
+  stroke: black;
+  stroke-width: 0.5;
+  fill: none;
+}
+
+.weekly-trend-chart .statistics.mode .group .item path{
+  stroke: black;
+  stroke-width: 0.5;
+  fill: none;
+  stroke-dasharray: 1, 1;
+}
+
+.weekly-trend-chart .statistics.mode .group .item text {
+  font-size: .3em;
+  font-weight: bold;
+}
+
+.weekly-trend-chart .statistics.mean .group .item path{
+  stroke: black;
+  stroke-width: 0.5;
+  fill: none;
+}
+
+.weekly-trend-chart .statistics.mean .group .item text {
+  font-size: .3em;
+  font-weight: bold;
+}
+/*********/
+

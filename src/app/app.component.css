@@ -1,0 +1,7 @@
+body {
+  min-height: calc(100vh - 100px);
+  min-width: calc(100vw - 100px);
+  margin: 32px;
+
+  background-color: darkgray;
+}

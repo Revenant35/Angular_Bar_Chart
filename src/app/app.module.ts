@@ -2,14 +2,16 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { AppComponent } from './app.component';
-import { BarchartComponent } from './components/barchart/barchart.component';
-import { BoxWhiskerPlotComponent } from './components/box-whisker-plot/box-whisker-plot.component';
+import { MonthlyTrendChartComponent } from './components/monthly-trend-chart/monthly-trend-chart.component';
+import { DailyTrendChartComponent } from './components/daily-trend-chart/daily-trend-chart.component';
+import { WeeklyTrendChartComponent } from './components/weekly-trend-chart/weekly-trend-chart.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    BarchartComponent,
-    BoxWhiskerPlotComponent,
+    MonthlyTrendChartComponent,
+    DailyTrendChartComponent,
+    WeeklyTrendChartComponent,
   ],
   imports: [
     BrowserModule
