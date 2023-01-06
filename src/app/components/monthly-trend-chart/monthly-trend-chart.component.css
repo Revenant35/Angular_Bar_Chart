@@ -60,11 +60,6 @@
   rotate: 270deg;
 }
 
-.monthly-trend-chart .x.axis text {
-  font-size: 11px;
-  text-anchor: middle;
-}
-
 
 .monthly-trend-chart .popup text {
   font-size: 8px;
@@ -84,13 +79,14 @@
   stroke: lightgray;
 }
 
-.monthly-trend-chart .axis text{
-  font-size: 10px;
-}
-
 .monthly-trend-chart .axis path,
 .monthly-trend-chart .axis line {
   stroke-width: 0.5px;
+}
+
+.monthly-trend-chart .x.axis text {
+  font-size: .9em;
+  text-anchor: middle;
 }
 /********/
 

@@ -61,8 +61,6 @@
   rotate: 270deg;
 }
 
-
-
 .daily-trend-chart .popup text {
   font-size: 8px;
   font-weight: bold;
@@ -81,8 +79,8 @@
   stroke: lightgray;
 }
 
-.daily-trend-chart .axis text{
-  font-size: 10px;
+.daily-trend-chart .x.axis text{
+  font-size: .9em;
 }
 
 .daily-trend-chart .axis path,
@@ -116,7 +114,7 @@
 }
 
 .daily-trend-chart .statistics.mode .group .item text {
-  font-size: .3em;
+  font-size: .5em;
   font-weight: bold;
 }
 
@@ -127,7 +125,7 @@
 }
 
 .daily-trend-chart .statistics.mean .group .item text {
-  font-size: .3em;
+  font-size: .5em;
   font-weight: bold;
 }
 /*********/
