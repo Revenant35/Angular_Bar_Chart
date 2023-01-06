@@ -21,10 +21,10 @@ export class DailyTrendChartComponent implements OnInit {
   @Input('selector') public selector: string;
 
   // Thresholds for Statistics
-  @Input('Min Threshold') public readonly MIN_THRESHOLD: number;
-  @Input('Medium Threshold') public readonly MEDIUM_THRESHOLD: number;
-  @Input('High Threshold') public readonly HIGH_THRESHOLD: number;
-  @Input('Max Threshold') public readonly MAX_THRESHOLD: number;
+  // @Input('Min Threshold') public readonly MIN_THRESHOLD: number;
+  // @Input('Medium Threshold') public readonly MEDIUM_THRESHOLD: number;
+  // @Input('High Threshold') public readonly HIGH_THRESHOLD: number;
+  // @Input('Max Threshold') public readonly MAX_THRESHOLD: number;
 
   // readonly lists
   public readonly COLOR_NAMES: string[];
@@ -37,9 +37,9 @@ export class DailyTrendChartComponent implements OnInit {
   public readonly bar_path_data: {paths: string[], x: number, datum: F_DataEntry}[];
   public readonly area_path_data: {paths: string[], x: number, datums: F_DataEntry[]}[];
   public readonly break_path_data: {path: string, x: number}[];
-  public readonly mode_path_data: {path: string[], y: number[], x: number, datum: F_DataEntry}[];
-  public readonly mean_path_data: {path: string[], y: number[], x: number, datum: F_DataEntry}[];
-  public readonly std_path_data: {path: string[], x: number, datum: F_DataEntry}[];
+  // public readonly mode_path_data: {path: string[], y: number[], x: number, datum: F_DataEntry}[];
+  // public readonly mean_path_data: {path: string[], y: number[], x: number, datum: F_DataEntry}[];
+  // public readonly std_path_data: {path: string[], x: number, datum: F_DataEntry}[];
 
   // Margin for the data section
   public margin: { top: number, left: number, right: number, bottom: number };
@@ -66,7 +66,7 @@ export class DailyTrendChartComponent implements OnInit {
 
   // Booleans
   public isInitialized: boolean;
-  public statisticsVisible: boolean;
+  // public statisticsVisible: boolean;
 
   // SVG Elements
   public svg!: d3.Selection<d3.BaseType, any, any, any>;
@@ -80,10 +80,10 @@ export class DailyTrendChartComponent implements OnInit {
     this.selector = '#chart';
 
     // Thresholds for Statistics
-    this.MIN_THRESHOLD = -15;
-    this.MEDIUM_THRESHOLD = 30;
-    this.HIGH_THRESHOLD = 60;
-    this.MAX_THRESHOLD = 120;
+    // this.MIN_THRESHOLD = -15;
+    // this.MEDIUM_THRESHOLD = 30;
+    // this.HIGH_THRESHOLD = 60;
+    // this.MAX_THRESHOLD = 120;
 
     // readonly lists
     this.COLOR_NAMES = ['green', 'yellow', 'red'];
@@ -96,9 +96,9 @@ export class DailyTrendChartComponent implements OnInit {
     this.bar_path_data = [];
     this.area_path_data = [];
     this.break_path_data = [];
-    this.mode_path_data = [];
-    this.mean_path_data = [];
-    this.std_path_data = [];
+    // this.mode_path_data = [];
+    // this.mean_path_data = [];
+    // this.std_path_data = [];
 
     // Margin for the data section
     this.margin = {top: 80, right: 110, bottom: 45, left: 60};
@@ -140,7 +140,7 @@ export class DailyTrendChartComponent implements OnInit {
 
     // Booleans
     this.isInitialized = false;
-    this.statisticsVisible = false;
+    // this.statisticsVisible = false;
   }
 
   ngOnInit(): void {
@@ -180,9 +180,9 @@ export class DailyTrendChartComponent implements OnInit {
         this.bar_path_data.length = 0;
         this.area_path_data.length = 0;
         this.break_path_data.length = 0;
-        this.mode_path_data.length = 0;
-        this.mean_path_data.length = 0;
-        this.std_path_data.length = 0;
+        // this.mode_path_data.length = 0;
+        // this.mean_path_data.length = 0;
+        // this.std_path_data.length = 0;
 
         // Remove pre-existing DOM elements
         this.svg.select('.x.axis').selectAll().remove();
@@ -197,9 +197,9 @@ export class DailyTrendChartComponent implements OnInit {
           date: new Date(+datum.video_year, +datum.video_month - 1, +datum.video_date),
           lower_divider: +datum.percent_green / total_percent,
           upper_divider: (+datum.percent_green + +datum.percent_yellow) / total_percent,
-          means: [+datum.mean_green!, +datum.mean_yellow!, +datum.mean_red!],
-          stds: [+datum.std_green!, +datum.std_yellow!, +datum.std_red!],
-          modes: [+datum.mode_green!, +datum.mode_yellow!, +datum.mode_red!],
+          means: [datum.mean_green! || NaN, datum.mean_yellow! || NaN, datum.mean_red! || NaN],
+          stds: [datum.std_green! || NaN, datum.std_yellow! || NaN, datum.std_red! || NaN],
+          modes: [datum.mode_green! || NaN, datum.mode_yellow! || NaN, datum.mode_red! || NaN],
           count_videos: +datum.count_videos
         });
       }
@@ -227,82 +227,84 @@ export class DailyTrendChartComponent implements OnInit {
 
       // Create an array of rectangle paths
       for(let datum of this.data) {
+
         const bars: string[] = [];
         const x = this.xScale(this.timeFormat(datum.date))!;
         const dividers = [this.yScale(0), this.yScale(datum.lower_divider), this.yScale(datum.upper_divider), this.yScale(1)];
+
         for(let j = 0; j < this.MAIN_COLORS.length; j++){
           const path = d3.path();
           path.moveTo(x, dividers[j] - 1);
           path.lineTo(x + this.bandWidth, dividers[j] - 1);
-          path.lineTo(x + this.bandWidth, dividers[j+1] - 1);
-          path.lineTo(x, dividers[j+1] - (j == 0 ? 0.5 : 1));
+          path.lineTo(x + this.bandWidth, dividers[j+1]  - 1);
+          path.lineTo(x, dividers[j+1] - 1);
           path.closePath();
           bars.push(path.toString());
         }
         this.bar_path_data.push({paths: bars, x: x, datum: datum});
       }
-
-      // Create an array of paths for modes
-      for(let datum of this.data) {
-        const modes: string[] = ["", "", ""];
-        const mode_heights: number[] = [-1, -1, -1];
-        const x = this.xScale(this.timeFormat(datum.date))!;
-        const dividers = [this.yScale(0), this.yScale(datum.lower_divider), this.yScale(datum.upper_divider), this.yScale(1)];
-        const THRESHOLDS = [this.MIN_THRESHOLD, this.MEDIUM_THRESHOLD, this.HIGH_THRESHOLD, this.MAX_THRESHOLD];
-        for(let i = 0; i < this.MAIN_COLORS.length; i++){
-          if(datum.means[i] && datum.modes[i] && datum.stds[i]) {
-            const height_pixels = dividers[i] - dividers[i + 1];
-            const height_stats = THRESHOLDS[i + 1] - THRESHOLDS[i];
-            let mode_height = dividers[i] - (height_pixels * ((datum.modes[i] - THRESHOLDS[i]) / height_stats)) - 1;
-            if(datum.modes[i] < this.MIN_THRESHOLD + 0.1){
-              mode_height = dividers[i] - (height_pixels * ((this.MIN_THRESHOLD + 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
-            }
-            if(datum.modes[i] > this.MAX_THRESHOLD - 0.1){
-              mode_height = dividers[i] - (height_pixels * ((this.MAX_THRESHOLD - 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
-            }
-
-            mode_heights[i] = mode_height;
-
-            const path = d3.path();
-            path.moveTo(x + 8, mode_height);
-            path.lineTo(x + this.bandWidth - 15, mode_height);
-            path.closePath();
-            modes[i] = path.toString();
-          }
-        }
-        this.mode_path_data.push({path: modes,  y: mode_heights, x: x, datum: datum});
-      }
-
-      // Create an array of paths for means
-      for(let datum of this.data) {
-        const means: string[] = ["", "", ""];
-        const mean_heights: number[] = [-1, -1, -1];
-        const x = this.xScale(this.timeFormat(datum.date))!;
-        const dividers = [this.yScale(0), this.yScale(datum.lower_divider), this.yScale(datum.upper_divider), this.yScale(1)];
-        const THRESHOLDS = [this.MIN_THRESHOLD, this.MEDIUM_THRESHOLD, this.HIGH_THRESHOLD, this.MAX_THRESHOLD];
-        for(let i = 0; i < this.MAIN_COLORS.length; i++){
-          if(datum.means[i] && datum.modes[i] && datum.stds[i]) {
-            const height_pixels = dividers[i] - dividers[i + 1];
-            const height_stats = THRESHOLDS[i + 1] - THRESHOLDS[i];
-            let mean_height = dividers[i] - (height_pixels * ((datum.means[i] - THRESHOLDS[i]) / height_stats)) - 1;
-            if(datum.means[i] < this.MIN_THRESHOLD + 0.1){
-              mean_height = dividers[i] - (height_pixels * ((this.MIN_THRESHOLD + 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
-            }
-            if(datum.modes[i] > this.MAX_THRESHOLD - 0.1){
-              mean_height = dividers[i] - (height_pixels * ((this.MAX_THRESHOLD - 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
-            }
-
-            mean_heights[i] = mean_height;
-
-            const path = d3.path();
-            path.moveTo(x + 8, mean_height);
-            path.lineTo(x + this.bandWidth - 15, mean_height);
-            path.closePath();
-            means[i] = path.toString();
-          }
-        }
-        this.mean_path_data.push({path: means,  y: mean_heights, x: x, datum: datum});
-      }
+      //
+      // // Create an array of paths for modes
+      // for(let datum of this.data) {
+      //   const modes: string[] = ["", "", ""];
+      //   const mode_heights: number[] = [-1, -1, -1];
+      //   const x = this.xScale(this.timeFormat(datum.date))!;
+      //   const dividers = [this.yScale(0), this.yScale(datum.lower_divider), this.yScale(datum.upper_divider), this.yScale(1)];
+      //   const THRESHOLDS = [this.MIN_THRESHOLD, this.MEDIUM_THRESHOLD, this.HIGH_THRESHOLD, this.MAX_THRESHOLD];
+      //   for(let i = 0; i < this.MAIN_COLORS.length; i++){
+      //     if(datum.means[i] && datum.modes[i] && datum.stds[i]) {
+      //       const height_pixels = dividers[i] - dividers[i + 1];
+      //       const height_stats = THRESHOLDS[i + 1] - THRESHOLDS[i];
+      //       let mode_height = dividers[i] - (height_pixels * ((datum.modes[i] - THRESHOLDS[i]) / height_stats)) - 1;
+      //       if(datum.modes[i] < this.MIN_THRESHOLD + 0.1){
+      //         mode_height = dividers[i] - (height_pixels * ((this.MIN_THRESHOLD + 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
+      //       }
+      //       if(datum.modes[i] > this.MAX_THRESHOLD - 0.1){
+      //         mode_height = dividers[i] - (height_pixels * ((this.MAX_THRESHOLD - 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
+      //       }
+      //
+      //       mode_heights[i] = mode_height;
+      //
+      //       const path = d3.path();
+      //       path.moveTo(x + 8, mode_height);
+      //       path.lineTo(x + this.bandWidth - 15, mode_height);
+      //       path.closePath();
+      //       modes[i] = path.toString();
+      //     }
+      //   }
+      //   this.mode_path_data.push({path: modes,  y: mode_heights, x: x, datum: datum});
+      // }
+      //
+      // // Create an array of paths for means
+      // for(let datum of this.data) {
+      //   const means: string[] = ["", "", ""];
+      //   const mean_heights: number[] = [-1, -1, -1];
+      //   const x = this.xScale(this.timeFormat(datum.date))!;
+      //   const dividers = [this.yScale(0), this.yScale(datum.lower_divider), this.yScale(datum.upper_divider), this.yScale(1)];
+      //   const THRESHOLDS = [this.MIN_THRESHOLD, this.MEDIUM_THRESHOLD, this.HIGH_THRESHOLD, this.MAX_THRESHOLD];
+      //   for(let i = 0; i < this.MAIN_COLORS.length; i++){
+      //     if(datum.means[i] && datum.modes[i] && datum.stds[i]) {
+      //       const height_pixels = dividers[i] - dividers[i + 1];
+      //       const height_stats = THRESHOLDS[i + 1] - THRESHOLDS[i];
+      //       let mean_height = dividers[i] - (height_pixels * ((datum.means[i] - THRESHOLDS[i]) / height_stats)) - 1;
+      //       if(datum.means[i] < this.MIN_THRESHOLD + 0.1){
+      //         mean_height = dividers[i] - (height_pixels * ((this.MIN_THRESHOLD + 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
+      //       }
+      //       if(datum.modes[i] > this.MAX_THRESHOLD - 0.1){
+      //         mean_height = dividers[i] - (height_pixels * ((this.MAX_THRESHOLD - 0.1 - THRESHOLDS[i]) / height_stats)) - 1;
+      //       }
+      //
+      //       mean_heights[i] = mean_height;
+      //
+      //       const path = d3.path();
+      //       path.moveTo(x + 8, mean_height);
+      //       path.lineTo(x + this.bandWidth - 15, mean_height);
+      //       path.closePath();
+      //       means[i] = path.toString();
+      //     }
+      //   }
+      //   this.mean_path_data.push({path: means,  y: mean_heights, x: x, datum: datum});
+      // }
 
 
       // Create an array of area paths
@@ -318,7 +320,7 @@ export class DailyTrendChartComponent implements OnInit {
             path.moveTo(x, left_dividers[j] - 1);
             path.lineTo(x + this.paddingWidth, right_dividers[j] - 1);
             path.lineTo(x + this.paddingWidth, right_dividers[j+1] - 1);
-            path.lineTo(x, left_dividers[j+1] - (j == 0 ? 0.5 : 1));
+            path.lineTo(x, left_dividers[j+1] - 1);
             path.closePath();
             paths.push(path.toString());
           }
@@ -330,10 +332,10 @@ export class DailyTrendChartComponent implements OnInit {
           const x_center = x + (this.paddingWidth / 2);
           path.moveTo(x_center, this.yScale(0));
           for (let i = 0; i < 16; i++) {
-            path.lineTo(x_center + x_rad, this.yScale(0.015625 + (.0625 * i)));
-            path.lineTo(x_center, this.yScale(0.03125 + (.0625 * i)));
-            path.lineTo(x_center - x_rad, this.yScale(0.046875 + (.0625 * i)));
-            path.lineTo(x_center, this.yScale((.0625 * (i + 1))));
+            path.lineTo(x_center + x_rad, this.yScale(0.015625 + (.0625 * i)) - 1);
+            path.lineTo(x_center, this.yScale(0.03125 + (.0625 * i)) - 1);
+            path.lineTo(x_center - x_rad, this.yScale(0.046875 + (.0625 * i)) - 1);
+            path.lineTo(x_center, this.yScale((.0625 * (i + 1))) - 1);
           }
           path.moveTo(x_center, this.yScale(0));
           path.closePath();

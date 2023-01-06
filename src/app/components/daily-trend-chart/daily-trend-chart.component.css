@@ -93,6 +93,7 @@
 .daily-trend-chart .columns .group .item {
   stroke: none;
   opacity: 100%;
+  font-size: .4em;
 }
 
 .daily-trend-chart .areas .group .item {
@@ -106,27 +107,5 @@
   fill: none;
 }
 
-.daily-trend-chart .statistics.mode .group .item path{
-  stroke: black;
-  stroke-width: 0.5;
-  fill: none;
-  stroke-dasharray: 1, 1;
-}
-
-.daily-trend-chart .statistics.mode .group .item text {
-  font-size: .5em;
-  font-weight: bold;
-}
-
-.daily-trend-chart .statistics.mean .group .item path{
-  stroke: black;
-  stroke-width: 0.5;
-  fill: none;
-}
-
-.daily-trend-chart .statistics.mean .group .item text {
-  font-size: .5em;
-  font-weight: bold;
-}
 /*********/
 
