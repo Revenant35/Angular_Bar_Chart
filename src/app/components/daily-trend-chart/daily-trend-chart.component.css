@@ -1,18 +1,17 @@
 @import 'https://fonts.googleapis.com/css2?family=Comfortaa:wght@300';
 
-
 .daily-trend-chart text{
   font-family: 'Comfortaa', cursive;
   fill: black;
-  font-size: 1em;
+  font-size: 1rem;
+}
+
+.daily-trend-chart  {
+  background-color: #FFFFFF;
 }
 
 .daily-trend-chart ::selection {
   background: lightblue;
-}
-
-.daily-trend-chart {
-  background-color: #FFFFFF;
 }
 
 .daily-trend-chart .y.axis,
@@ -29,83 +28,100 @@
   user-select: none;
 }
 
-
+/* TITLE */
 .daily-trend-chart .title text{
-  font-size: 1.5em;
-  transform: translate(50%, 1.5em);
+  font-size: 2.5rem;
+  transform: translate(50%, 3.5rem);
   text-anchor: middle;
 }
+/*********/
 
-
-
+/* LEGEND */
 .daily-trend-chart .legend {
-  transform: translate(calc(100% - 45px), 50%);
   text-anchor: middle;
 }
 
 .daily-trend-chart .legend>text {
-  transform: translateX(-10px);
-  font-size: 1em;
+  font-size: 1.5rem;
 }
 
-.daily-trend-chart .legend g {
+.daily-trend-chart .legend .contents>text {
   text-anchor: start;
-  font-size: .75em;
+  font-size: 1rem;
+}
+/**********/
+
+/* PATHS */
+.daily-trend-chart .mean {
+  stroke: black;
+  stroke-width: 2px;
+  fill: none;
+  shape-rendering: geometricPrecision;
 }
 
+.daily-trend-chart .mode {
+  stroke: black;
+  stroke-width: 1px;
+  fill: none;
+  opacity: 100%;
+  shape-rendering: geometricPrecision;
+  stroke-dasharray: 6px;
+}
+/*********/
 
-
+/* Y LABEL */
 .daily-trend-chart .y.label text{
-  font-size: 12px;
+  font-size: 1.4rem;
   text-anchor: middle;
   rotate: 270deg;
+  transform: translateY(2rem);
 }
+/***********/
 
+/* POPUP */
 .daily-trend-chart .popup text {
-  font-size: 8px;
+  font-size: 1rem;
   font-weight: bold;
   text-anchor: middle;
   visibility: hidden;
+  padding: 1rem 0;
 }
 
 .daily-trend-chart .popup rect {
   visibility: hidden;
   fill: #FFFFFF;
 }
-
+/*********/
 
 /* AXES */
 .daily-trend-chart .y.axis line{
   stroke: lightgray;
+  stroke-width: 1px;
 }
 
-.daily-trend-chart .x.axis text{
-  font-size: .9em;
+.daily-trend-chart .axis path {
+  stroke: black;
+  stroke-width: 1px;
 }
 
-.daily-trend-chart .axis path,
-.daily-trend-chart .axis line {
-  stroke-width: 0.5px;
+.daily-trend-chart .axis text{
+  font-size: 1rem;
 }
 /********/
 
 /* DATA */
-.daily-trend-chart .columns .group .item {
-  stroke: none;
+.daily-trend-chart .columns{
   opacity: 100%;
-  font-size: .4em;
 }
 
-.daily-trend-chart .areas .group .item {
-  stroke: none;
+.daily-trend-chart .areas{
   opacity: 70%;
 }
 
 .daily-trend-chart .breaks .group .item {
   stroke: black;
-  stroke-width: 0.5;
+  stroke-width: 1;
   fill: none;
 }
-
 /*********/
 

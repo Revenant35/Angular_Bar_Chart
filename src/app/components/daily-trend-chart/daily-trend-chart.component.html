@@ -2,15 +2,19 @@
   <g class="title">
     <text>{{title + ' - Daily'}}</text>
   </g>
-  <g class="legend">
+  <g class="legend" [style.transform]="'translate(' + (width - (margin.right / 2)) + 'px , 50%)'">
     <text>Legend</text>
-    <g *ngFor="let label of LEGEND_LABELS; let i = index">
-      <circle r="0.25em" [attr.fill]="MAIN_COLORS[i]" cx="-4em" [attr.cy]="1.25+i+'em'"></circle>
-      <text x="-3.5em" [attr.y]="1.5 + i+'em'">{{label}}</text>
+    <g class="contents">
+      <circle *ngFor="let label of LEGEND_LABELS; let i = index" r="0.25em" [attr.fill]="MAIN_COLORS[i]" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
+      <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
+      <path class="mean" d="M-62 68 L-50 68 Z" [style.visibility]="(statisticsVisible)?'visible':'hidden'"></path>
+      <text x="-2.8em" y="4.7em" [style.visibility]="(statisticsVisible)?'visible':'hidden'">Mean</text>
+      <path style="stroke-dasharray: 5px" class="mode" d="M-62 83 L-50 83 Z" [style.visibility]="(statisticsVisible)?'visible':'hidden'"></path>
+      <text x="-2.8em" y="5.7em" [style.visibility]="(statisticsVisible)?'visible':'hidden'">Mode</text>
     </g>
   </g>
   <g class="y label">
-    <text [attr.x]="-margin.top - ((height-margin.top-margin.bottom)/2) + 'px'" y="25px">Angle Percentages</text>
+    <text [attr.x]="-margin.top - ((height-margin.top-margin.bottom)/2) + 'px'">Angle Percentages</text>
   </g>
   <g class="y axis" [attr.transform]="'translate('+ margin.left +', 0)'"></g>
   <g class="x axis" [attr.transform]="'translate(0,' + (height - margin.bottom) + ')'"></g>
@@ -20,10 +24,6 @@
         <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
           <path [attr.d]="column.paths[j]"
                 [attr.fill]="color"></path>
-
-<!--          <text class="mean" [attr.x]="column.x" [attr.y]="column.dividers[j+1] + (column.dividers[j] - column.dividers[j+1])/2 ">mean: {{column.datum.means[j].toFixed(2)}}</text>-->
-<!--          <text class="mean" [attr.x]="column.x" [attr.y]="10 + column.dividers[j+1] + (column.dividers[j] - column.dividers[j+1])/2 ">mode: {{column.datum.modes[j].toFixed(2)}}</text>-->
-<!--          <text class="mean" [attr.x]="column.x" [attr.y]="20 + column.dividers[j+1] + (column.dividers[j] - column.dividers[j+1])/2 ">STD: {{column.datum.stds[j].toFixed(2)}}</text>-->
         </g>
       </g>
     </g>
@@ -40,15 +40,41 @@
         <path class="item" [attr.d]="data.path"></path>
       </g>
     </g>
+    <g class="statistics mode">
+      <g class="group" *ngFor="let data of mode_path_data">
+        <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
+          <path *ngIf="data.y[j] != -1"
+                [attr.d]="data.path[j]"
+                [style.visibility]="(statisticsVisible)?'visible':'hidden'"
+          ></path>
+        </g>
+      </g>
+    </g>
+    <g class="statistics mean">
+      <g class="group" *ngFor="let data of mean_path_data">
+        <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
+          <path *ngIf="data.y[j] != -1"
+                [attr.d]="data.path[j]"
+                [style.visibility]="(statisticsVisible)?'visible':'hidden'"
+          ></path>
+        </g>
+      </g>
+    </g>
   </g>
   <g class="popup" style="position: absolute">
     <rect
-      [attr.width]="100"
-      [attr.height]="32"
-      [style.transform]="'translate(-45px, 16px)'"
+      [attr.width]="200"
+      [attr.height]="70"
+      [style.transform]="'translate(-95px, 43px)'"
     ></rect>
     <text *ngFor="let color of MAIN_COLORS; let i = index"
           [style.fill]="MAIN_COLORS[MAIN_COLORS.length - i - 1]"
-          [style.transform]="'translate(5px, ' + (25 + 10*i) + 'px)'"></text>
+          [style.transform]="'translate(5px, ' + (4 + 1.2*i) + 'rem)'"></text>
   </g>
 </svg>
+<input
+  type="checkbox"
+  [id]="'checkboxFor' + selector"
+  [checked]="statisticsVisible"
+  (change)="statisticsVisible = !statisticsVisible"/>
+<label [for]="'checkboxFor' + selector">Show Statistics</label>
