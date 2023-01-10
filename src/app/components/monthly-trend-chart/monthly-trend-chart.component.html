@@ -84,8 +84,8 @@
       [attr.height]="70"
       [style.transform]="'translate(-95px, 43px)'"
     ></rect>
-    <text *ngFor="let color of MAIN_COLORS; let i = index"
-          [style.fill]="MAIN_COLORS[MAIN_COLORS.length - i - 1]"
+    <text *ngFor="let color of TEXT_COLORS; let i = index"
+          [style.fill]="TEXT_COLORS[TEXT_COLORS.length - i - 1]"
           [style.transform]="'translate(5px, ' + (4 + 1.2*i) + 'rem)'"></text>
   </g>
 </svg>

@@ -28,6 +28,7 @@ export class DailyTrendChartComponent implements OnInit {
   public readonly LEGEND_LABELS: string[];
   public readonly MAIN_COLORS: string[];
   public readonly SECONDARY_COLORS: string[];
+  public readonly TEXT_COLORS: string[];
 
   public readonly data: F_DataEntry[];
   public readonly bar_path_data: {paths: string[], x: number, datum: F_DataEntry}[];
@@ -77,6 +78,7 @@ export class DailyTrendChartComponent implements OnInit {
     this.LEGEND_LABELS = ['Low Risk', 'Medium Risk', 'High Risk'];
     this.MAIN_COLORS = ['#60D394', '#fddb8a', '#EE6055'];
     this.SECONDARY_COLORS = ['#b1ffda', '#ffe0a6', '#ffada8'];
+    this.TEXT_COLORS = ['#31e181', '#e1ac2c', '#e7483e'];
 
     // Data Array
     this.data = [];
