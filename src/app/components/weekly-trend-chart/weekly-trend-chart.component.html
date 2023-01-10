@@ -7,7 +7,6 @@
     <g class="contents">
       <circle *ngFor="let label of LEGEND_LABELS; let i = index" r="0.25em" [attr.fill]="MAIN_COLORS[i]" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
       <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
-      <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
       <line class="mean"
             [attr.x1]="-62"
             [attr.x2]="-50"
