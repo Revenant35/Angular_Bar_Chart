@@ -7,9 +7,21 @@
     <g class="contents">
       <circle *ngFor="let label of LEGEND_LABELS; let i = index" r="0.25em" [attr.fill]="MAIN_COLORS[i]" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
       <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
-      <path class="mean" d="M-62 68 L-50 68 Z" [style.visibility]="(statisticsVisible)?'visible':'hidden'"></path>
+      <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
+      <line class="mean"
+            [attr.x1]="-62"
+            [attr.x2]="-50"
+            [attr.y1]="68"
+            [attr.y2]="68"
+            [style.visibility]="(statisticsVisible)?'visible':'hidden'"></line>
       <text x="-2.8em" y="4.7em" [style.visibility]="(statisticsVisible)?'visible':'hidden'">Mean</text>
-      <path style="stroke-dasharray: 5px" class="mode" d="M-62 83 L-50 83 Z" [style.visibility]="(statisticsVisible)?'visible':'hidden'"></path>
+      <line class="mode"
+            [attr.x1]="-62"
+            [attr.x2]="-50"
+            [attr.y1]="83"
+            [attr.y2]="83"
+            style="stroke-dasharray: 4px"
+            [style.visibility]="(statisticsVisible)?'visible':'hidden'"></line>
       <text x="-2.8em" y="5.7em" [style.visibility]="(statisticsVisible)?'visible':'hidden'">Mode</text>
     </g>
   </g>
@@ -43,20 +55,26 @@
     <g class="statistics mode">
       <g class="group" *ngFor="let data of mode_path_data">
         <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
-          <path *ngIf="data.y[j] != -1"
-                [attr.d]="data.path[j]"
+          <line class="mean" *ngIf="data.y_arr[j] != -1"
+                [attr.x1]="data.x"
+                [attr.x2]="data.x + bandWidth"
+                [attr.y1]="data.y_arr[j]"
+                [attr.y2]="data.y_arr[j]"
                 [style.visibility]="(statisticsVisible)?'visible':'hidden'"
-          ></path>
+          ></line>
         </g>
       </g>
     </g>
     <g class="statistics mean">
       <g class="group" *ngFor="let data of mean_path_data">
         <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
-          <path *ngIf="data.y[j] != -1"
-                [attr.d]="data.path[j]"
+          <line class="mean" *ngIf="data.y_arr[j] != -1"
+                [attr.x1]="data.x"
+                [attr.x2]="data.x + bandWidth"
+                [attr.y1]="data.y_arr[j]"
+                [attr.y2]="data.y_arr[j]"
                 [style.visibility]="(statisticsVisible)?'visible':'hidden'"
-          ></path>
+          ></line>
         </g>
       </g>
     </g>

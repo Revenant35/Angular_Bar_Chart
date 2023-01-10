@@ -56,14 +56,12 @@
   stroke: black;
   stroke-width: 2px;
   fill: none;
-  shape-rendering: geometricPrecision;
 }
 
 .monthly-trend-chart .mode {
   stroke: black;
   stroke-width: 1px;
   fill: none;
-  shape-rendering: geometricPrecision;
   stroke-dasharray: 6px;
 
 }
