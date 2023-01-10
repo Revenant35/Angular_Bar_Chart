@@ -368,10 +368,10 @@ export class WeeklyTrendChartComponent implements OnInit {
       this.svg.select('.popup').attr('transform', `translate(${x - 5 + (this.bandWidth/2)}, 25)`);
       this.svg.selectAll('.popup text').style('visibility', 'visible').each(function(d, j){
         d3.select(this).text(`
-            μ: ${datum.means[2 - j].toFixed(2)},
-            d: ${datum.modes[2 - j].toFixed(2)},
-            σ: ${datum.stds[2 - j].toFixed(2)}`
-        )
+            μ: ${datum.means[2 - j].toFixed(2).replace("NaN", "N/A")},
+            d: ${datum.modes[2 - j].toFixed(2).replace("NaN", "N/A")},
+            σ: ${datum.stds[2 - j].toFixed(2).replace("NaN", "N/A")}
+        `)
       });
       event.stopPropagation();
       this.svg.selectAll('.popup *').style('visibility', 'visible');
