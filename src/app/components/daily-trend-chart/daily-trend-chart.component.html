@@ -1,11 +1,11 @@
-<svg class="daily-trend-chart" (mousedown)="hidePopup($event)" preserveAspectRatio="xMinYMin meet" [attr.viewBox]="'0 0 ' + width + ' ' + height">
+<svg class="daily-trend-chart" (mousedown)="hidePopup()" preserveAspectRatio="xMinYMin meet" [attr.viewBox]="'0 0 ' + width + ' ' + height">
   <g class="title">
     <text>{{title + ' - Daily'}}</text>
   </g>
-  <g class="legend" [style.transform]="'translate(' + (width - (margin.right / 2)) + 'px , 50%)'">
+  <g class="legend" [style.transform]="'translate(' + (width - (margin.right / 2) + 10) + 'px , 50%)'">
     <text>Legend</text>
     <g class="contents">
-      <circle *ngFor="let label of LEGEND_LABELS; let i = index" r="0.25em" [attr.fill]="MAIN_COLORS[i]" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
+      <circle *ngFor="let label of LEGEND_LABELS; let color of MAIN_COLORS; let i = index" r="0.25em" [attr.fill]="color" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
       <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
       <line class="mean"
             [attr.x1]="-62"
@@ -27,15 +27,27 @@
   <g class="y label">
     <text [attr.x]="-margin.top - ((height-margin.top-margin.bottom)/2) + 'px'">Angle Percentages</text>
   </g>
-  <g class="y axis" [attr.transform]="'translate('+ margin.left +', 0)'"></g>
+  <g class="y1 axis" [attr.transform]="'translate('+ margin.left +', 0)'"></g>
+  <g class="y2 axis" [attr.transform]="'translate('+ (width - margin.right) +', 0)'">
+    <rect *ngFor="let color of SECONDARY_COLORS; let i = index"
+          [attr.x]="y2_Axis_render_data.x"
+          [attr.width]="y2_Axis_render_data.width"
+          [attr.height]="y2_Axis_render_data.height[i]"
+          [attr.y]="y2_Axis_render_data.y_arr[i]"
+          [attr.fill]="SECONDARY_COLORS[SECONDARY_COLORS.length - i - 1]"
+    >
+    </rect>
+  </g>
   <g class="x axis" [attr.transform]="'translate(0,' + (height - margin.bottom) + ')'"></g>
   <g class="data">
     <g class="columns">
-      <g class="group" *ngFor="let column of bar_path_data" (mousedown)="showPopup($event, column.x, column.datum, this)">
-        <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
-          <path [attr.d]="column.paths[j]"
-                [attr.fill]="color"></path>
-        </g>
+      <g class="group" *ngFor="let bar of bar_render_data" (mousedown)="showPopup($event, bar.x, bar.datum, this)">
+        <rect *ngFor="let color of MAIN_COLORS; let i = index"
+          [attr.x]="bar.x"
+          [attr.width]="bar.width"
+          [attr.y]="bar.y[i]"
+          [attr.height]="bar.height[i]"
+          [attr.fill]=color></rect>
       </g>
     </g>
     <g class="areas">
@@ -52,46 +64,47 @@
       </g>
     </g>
     <g class="statistics mode">
-      <g class="group" *ngFor="let data of mode_path_data">
-        <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
-          <line class="mean" *ngIf="data.y_arr[j] != -1"
-                [attr.x1]="data.x"
-                [attr.x2]="data.x + bandWidth"
-                [attr.y1]="data.y_arr[j]"
-                [attr.y2]="data.y_arr[j]"
-                [style.visibility]="(statisticsVisible)?'visible':'hidden'"
-          ></line>
-        </g>
+      <g class="group" *ngFor="let data of mode_render_data">
+        <line class="mean" *ngFor="let color of MAIN_COLORS; let j = index"
+              [attr.x1]="data.x1"
+              [attr.x2]="data.x2"
+              [attr.y1]="data.y_arr[j]"
+              [attr.y2]="data.y_arr[j]"
+              [style.visibility]="(statisticsVisible)?'visible':'hidden'"
+              [style.display]="(data.y_arr[j] != -1) ? 'initial' : 'none'"
+        ></line>
       </g>
     </g>
     <g class="statistics mean">
-      <g class="group" *ngFor="let data of mean_path_data">
-        <g class="item" *ngFor="let color of MAIN_COLORS; let j = index">
-          <line class="mean" *ngIf="data.y_arr[j] != -1"
-                [attr.x1]="data.x"
-                [attr.x2]="data.x + bandWidth"
-                [attr.y1]="data.y_arr[j]"
-                [attr.y2]="data.y_arr[j]"
-                [style.visibility]="(statisticsVisible)?'visible':'hidden'"
-          ></line>
-        </g>
+      <g class="group" *ngFor="let data of mean_render_data">
+        <line class="mean" *ngFor="let color of MAIN_COLORS; let j = index"
+              [attr.x1]="data.x1"
+              [attr.x2]="data.x2"
+              [attr.y1]="data.y_arr[j]"
+              [attr.y2]="data.y_arr[j]"
+              [style.visibility]="(statisticsVisible)?'visible':'hidden'"
+              [style.display]="(data.y_arr[j] != -1) ? 'initial' : 'none'"
+        ></line>
       </g>
     </g>
   </g>
-  <g class="popup" style="position: absolute">
+  <g class="popup" style="position: absolute"(mousedown)="$event.stopPropagation()">
     <rect
       [attr.width]="200"
       [attr.height]="70"
       [style.transform]="'translate(-95px, 43px)'"
+      [style.display]="(popupVisible) ? 'initial' : 'none'"
     ></rect>
     <text *ngFor="let color of TEXT_COLORS; let i = index"
           [style.fill]="TEXT_COLORS[TEXT_COLORS.length - i - 1]"
-          [style.transform]="'translate(5px, ' + (4 + 1.2*i) + 'rem)'"></text>
+          [style.transform]="'translate(5px, ' + (4 + 1.2*i) + 'rem)'"
+          [style.display]="(popupVisible) ? 'initial' : 'none'"
+    ></text>
   </g>
 </svg>
 <input
   type="checkbox"
   [id]="'checkboxFor' + selector"
   [checked]="statisticsVisible"
-  (change)="statisticsVisible = !statisticsVisible"/>
+  (change)="statisticsVisible = !statisticsVisible; hidePopup()"/>
 <label [for]="'checkboxFor' + selector">Show Statistics</label>

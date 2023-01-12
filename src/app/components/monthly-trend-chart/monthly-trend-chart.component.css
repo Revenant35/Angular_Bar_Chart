@@ -81,12 +81,10 @@
   font-size: 1rem;
   font-weight: bold;
   text-anchor: middle;
-  visibility: hidden;
   padding: 1rem 0;
 }
 
 .monthly-trend-chart .popup rect {
-  visibility: hidden;
   fill: #FFFFFF;
 }
 /*********/
