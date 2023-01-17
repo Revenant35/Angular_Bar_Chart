@@ -5,7 +5,7 @@
   <g class="legend" [style.transform]="'translate(' + (width - (margin.right / 2) + 10) + 'px , 50%)'">
     <text>Legend</text>
     <g class="contents">
-      <circle *ngFor="let label of LEGEND_LABELS; let color of MAIN_COLORS; let i = index" r="0.25em" [attr.fill]="color" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
+      <circle *ngFor="let label of LEGEND_LABELS; let i = index" r="0.25em" [attr.fill]="MAIN_COLORS[i]" cx="-3.5em" [attr.cy]="3.3 - i + 'em'"></circle>
       <text *ngFor="let label of LEGEND_LABELS; let i = index" x="-2.8em" [attr.y]="3.7 - i + 'em'">{{label}}</text>
       <line class="mean"
             [attr.x1]="-62"
@@ -24,71 +24,7 @@
       <text x="-2.8em" y="5.7em" [style.visibility]="(statisticsVisible)?'visible':'hidden'">Mode</text>
     </g>
   </g>
-  <g class="y label">
-    <text [attr.x]="-margin.top - ((height-margin.top-margin.bottom)/2) + 'px'">Angle Percentages</text>
-  </g>
-  <g class="y1 axis" [attr.transform]="'translate('+ margin.left +', 0)'"></g>
-  <g class="y2 axis" [attr.transform]="'translate('+ (width - margin.right) +', 0)'">
-    <rect *ngFor="let color of SECONDARY_COLORS; let i = index"
-          [attr.x]="y2_Axis_render_data.x"
-          [attr.width]="y2_Axis_render_data.width"
-          [attr.height]="y2_Axis_render_data.height[i]"
-          [attr.y]="y2_Axis_render_data.y_arr[i]"
-          [attr.fill]="SECONDARY_COLORS[SECONDARY_COLORS.length - i - 1]"
-    >
-    </rect>
-  </g>
-  <g class="x axis" [attr.transform]="'translate(0,' + (height - margin.bottom) + ')'"></g>
-  <g class="data">
-    <g class="columns">
-      <g class="group" *ngFor="let bar of bar_render_data" (mousedown)="showPopup($event, bar.x, bar.datum, this)">
-        <rect *ngFor="let color of MAIN_COLORS; let i = index"
-          [attr.x]="bar.x"
-          [attr.width]="bar.width"
-          [attr.y]="bar.y[i]"
-          [attr.height]="bar.height[i]"
-          [attr.fill]=color></rect>
-      </g>
-    </g>
-    <g class="areas">
-      <g class="group" *ngFor="let data of area_path_data">
-        <path class="item" *ngFor="let color of SECONDARY_COLORS; let j = index"
-              [attr.d]="data.paths[j]"
-              [attr.fill]="color"
-        ></path>
-      </g>
-    </g>
-    <g class="breaks">
-      <g class="group" *ngFor="let data of break_path_data; let i = index">
-        <path class="item" [attr.d]="data.path"></path>
-      </g>
-    </g>
-    <g class="statistics mode">
-      <g class="group" *ngFor="let data of mode_render_data">
-        <line class="mean" *ngFor="let color of MAIN_COLORS; let j = index"
-              [attr.x1]="data.x1"
-              [attr.x2]="data.x2"
-              [attr.y1]="data.y_arr[j]"
-              [attr.y2]="data.y_arr[j]"
-              [style.visibility]="(statisticsVisible)?'visible':'hidden'"
-              [style.display]="(data.y_arr[j] != -1) ? 'initial' : 'none'"
-        ></line>
-      </g>
-    </g>
-    <g class="statistics mean">
-      <g class="group" *ngFor="let data of mean_render_data">
-        <line class="mean" *ngFor="let color of MAIN_COLORS; let j = index"
-              [attr.x1]="data.x1"
-              [attr.x2]="data.x2"
-              [attr.y1]="data.y_arr[j]"
-              [attr.y2]="data.y_arr[j]"
-              [style.visibility]="(statisticsVisible)?'visible':'hidden'"
-              [style.display]="(data.y_arr[j] != -1) ? 'initial' : 'none'"
-        ></line>
-      </g>
-    </g>
-  </g>
-  <g class="popup" style="position: absolute"(mousedown)="$event.stopPropagation()">
+  <g class="popup" style="position: absolute" (mousedown)="$event.stopPropagation()">
     <rect
       [attr.width]="200"
       [attr.height]="70"
@@ -100,6 +36,59 @@
           [style.transform]="'translate(5px, ' + (4 + 1.2*i) + 'rem)'"
           [style.display]="(popupVisible) ? 'initial' : 'none'"
     ></text>
+  </g>
+  <g class="y label">
+    <text [attr.x]="-margin.top - ((height-margin.top-margin.bottom)/2) + 'px'">Angle Percentages</text>
+  </g>
+  <g class="y axis" [attr.transform]="'translate('+ margin.left +', 0)'"></g>
+  <g class="x axis" [attr.transform]="'translate(0,' + (height - margin.bottom) + ')'"></g>
+  <g class="data">
+    <g class="columns">
+      <g class="areas">
+        <g class="group" *ngFor="let data of area_data">
+          <path class="item" *ngFor="let color of SECONDARY_COLORS; let j = index"
+                [attr.d]="data[j]"
+                [attr.fill]="color"
+          ></path>
+        </g>
+      </g>
+      <g class="breaks">
+        <path *ngFor="let data of break_data" [attr.d]="data"></path>
+      </g>
+      <g class="column" *ngFor="let bar of bar_data" (mousedown)="showPopup($event, bar, this)">
+        <g class="section" *ngFor="let color of MAIN_COLORS; let i = index">
+          <rect
+            [attr.x]="bar.x"
+            [attr.width]="bandWidth"
+            [attr.y]= "bar.y_bar[i+1] - 1"
+            [attr.height]= "bar.y_bar[i] - bar.y_bar[i+1]"
+            [attr.fill]=color></rect>
+          <line class="mean"
+                [attr.x1]="bar.x"
+                [attr.x2]="bar.x + bandWidth"
+                [attr.y1]="bar.y_mean[i]"
+                [attr.y2]="bar.y_mean[i]"
+                [style.display]="(bar.y_mean[i] != -1 && statisticsVisible) ? 'initial' : 'none'"
+          ></line>
+          <line class="mode"
+                [attr.x1]="bar.x"
+                [attr.x2]="bar.x + bandWidth"
+                [attr.y1]="bar.y_mode[i]"
+                [attr.y2]="bar.y_mode[i]"
+                [style.display]="(bar.y_mode[i] != -1 && statisticsVisible) ? 'initial' : 'none'"
+          ></line>
+        </g>
+      </g>
+      <g class="thresholds" *ngFor="let datum of threshold_data">
+        <text *ngFor="let threshold of [min_threshold, medium_threshold, high_threshold, max_threshold]; let i = index"
+              [attr.x]="datum.x + bandWidth+2"
+              [attr.y]="datum.y[i]"
+              [style.display]="(statisticsVisible) ? 'initial' : 'none'">{{[this.min_threshold, this.medium_threshold, this.high_threshold, this.max_threshold][i] + '°'}}</text>
+        <path *ngFor="let threshold of [min_threshold, medium_threshold, high_threshold, max_threshold]; let i = index"
+              [attr.d]="datum.path[i]"
+              [style.display]="(statisticsVisible) ? 'initial' : 'none'"></path>
+      </g>
+    </g>
   </g>
 </svg>
 <input

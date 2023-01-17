@@ -3,7 +3,7 @@
 .monthly-trend-chart text{
   font-family: 'Comfortaa', cursive;
   fill: black;
-  font-size: 1rem;
+  font-size: 16px;
 }
 
 .monthly-trend-chart  {
@@ -110,11 +110,22 @@
   opacity: 100%;
 }
 
+.monthly-trend-chart .columns text {
+  font-size: .8rem;
+}
+
+
 .monthly-trend-chart .areas{
   opacity: 70%;
 }
 
-.monthly-trend-chart .breaks .group .item {
+.monthly-trend-chart .breaks path {
+  stroke: black;
+  stroke-width: .5;
+  fill: none;
+}
+
+.monthly-trend-chart .thresholds path {
   stroke: black;
   stroke-width: 1;
   fill: none;

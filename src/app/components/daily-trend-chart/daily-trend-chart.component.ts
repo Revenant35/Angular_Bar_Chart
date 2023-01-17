@@ -1,5 +1,5 @@
-import {Component, Input, OnInit, SimpleChange, SimpleChanges, ViewEncapsulation} from '@angular/core';
-import {F_DataEntry} from "./formatted-data-entry";
+import {Component, Input, OnChanges, OnDestroy, OnInit, SimpleChange, SimpleChanges, ViewEncapsulation} from '@angular/core';
+import {F_Bar_Data_Entry} from "./formatted-bar-data-entry";
 import {R_DataEntry} from "./raw-data-entry";
 import * as d3 from 'd3';
 
@@ -16,15 +16,15 @@ import * as d3 from 'd3';
 export class DailyTrendChartComponent implements OnInit {
 
   // Data Inputs
-  @Input('raw_data') public raw_data: R_DataEntry[];
-  @Input('title') public title: string;
-  @Input('selector') public selector: string;
+  @Input() public raw_data: R_DataEntry[];
+  @Input() public title: string;
+  @Input() public selector: string;
 
   // Threshold Inputs
-  @Input('min_threshold') public min_threshold: number;
-  @Input('medium_threshold') public medium_threshold: number;
-  @Input('high_threshold') public high_threshold: number;
-  @Input('max_threshold') public max_threshold: number;
+  @Input() public min_threshold: number;
+  @Input() public medium_threshold: number;
+  @Input() public high_threshold: number;
+  @Input() public max_threshold: number;
 
   // Const Lists
   public readonly LEGEND_LABELS: string[];
@@ -32,32 +32,25 @@ export class DailyTrendChartComponent implements OnInit {
   public readonly SECONDARY_COLORS: string[];
   public readonly TEXT_COLORS: string[];
 
-  public readonly data: F_DataEntry[];
-
-  // Rendering data (sent to HTML)
-  public y2_Axis_render_data: {y_arr: number[], height: number[], x: number, width: number};
-  public readonly bar_render_data: {y: number[], height: number[], x: number, width: number, datum: F_DataEntry}[];
-  public readonly area_path_data: {paths: string[], x: number, datums: F_DataEntry[]}[];
-  public readonly break_path_data: {path: string, x: number}[];
-  public readonly mode_render_data: {y_arr: number[], x1: number, x2: number, datum: F_DataEntry}[];
-  public readonly mean_render_data: {y_arr: number[], x1: number, x2: number, datum: F_DataEntry}[];
+  // Rendering Data
+  public bar_data: F_Bar_Data_Entry[];
+  public area_data: string[][];
+  public break_data: string[];
+  public threshold_data: {x: number, y: number[], path: string[]}[];
 
   public readonly margin: { top: number, left: number, right: number, bottom: number };
 
   public readonly height: number;
   public readonly width: number;
 
-  private bandWidth: number;
-  private paddingWidth: number;
+  public bandWidth: number;
+  public paddingWidth: number;
 
   public readonly xScale: d3.ScaleBand<string>;
-  public readonly y1Scale: d3.ScaleLinear<number, number>;
-  public readonly y2Scale: d3.ScaleLinear<number, number>;
+  public readonly yScale: d3.ScaleLinear<number, number>;
   public readonly xAxis: d3.Axis<string>;
-  public readonly y1Axis: d3.Axis<d3.NumberValue>;
-  public readonly y2Axis: d3.Axis<d3.NumberValue>;
+  public readonly yAxis: d3.Axis<d3.NumberValue>;
 
-  public isInitialized: boolean;
   public statisticsVisible: boolean;
   public popupVisible: boolean;
 
@@ -66,31 +59,28 @@ export class DailyTrendChartComponent implements OnInit {
   public timeFormat = d3.timeFormat('%b %d, %Y');
 
   constructor(){
-    // Basic Inputs
+    // Default Values for Inputs
     this.raw_data = [];
     this.title = 'Angle Trend Chart';
     this.selector = '#chart';
 
-    // Thresholds for Statistics
+    // Default Thresholds for Statistics
     this.min_threshold = -15;
     this.medium_threshold = 30;
     this.high_threshold = 60;
     this.max_threshold = 120;
 
-    // readonly lists
+    // Initializing constant lists
     this.LEGEND_LABELS = ['Low Risk', 'Medium Risk', 'High Risk'];
     this.MAIN_COLORS = ['#60D394', '#fddb8a', '#EE6055'];
     this.SECONDARY_COLORS = ['#b1ffda', '#ffe0a6', '#ffada8'];
     this.TEXT_COLORS = ['#31e181', '#e1ac2c', '#e7483e'];
 
-    // Data Array
-    this.data = [];
-    this.bar_render_data = [];
-    this.area_path_data = [];
-    this.break_path_data = [];
-    this.mode_render_data = [];
-    this.mean_render_data = [];
-    // this.std_path_data = [];
+    // Data Arrays
+    this.bar_data = [];
+    this.area_data = [];
+    this.break_data = [];
+    this.threshold_data = [];
 
     // Margin for the data section
     this.margin = {top: 140, right: 200, bottom: 75, left: 90};
@@ -110,13 +100,8 @@ export class DailyTrendChartComponent implements OnInit {
       .align(0.5);
 
     // Initialize Y Scale
-    this.y1Scale = d3.scaleLinear()
+    this.yScale = d3.scaleLinear()
       .domain([0, 1])
-      .range([this.height - this.margin.bottom, this.margin.top]);
-
-    // Initialize Y Scale
-    this.y2Scale = d3.scaleLinear()
-      .domain([1, 4])
       .range([this.height - this.margin.bottom, this.margin.top]);
 
     // Initialize X Axis
@@ -127,7 +112,7 @@ export class DailyTrendChartComponent implements OnInit {
       .offset(-.5);
 
     // Initialize Y Axis
-    this.y1Axis = d3.axisLeft(this.y1Scale)
+    this.yAxis = d3.axisLeft(this.yScale)
       .tickFormat(d3.format(".0%"))
       .tickSizeInner(this.margin.left + this.margin.right - this.width)
       .tickSizeOuter(0)
@@ -135,228 +120,205 @@ export class DailyTrendChartComponent implements OnInit {
       .offset(-.5)
       .tickValues([.1, .2, .3, .4, .5, .6, .7, .8, .9, 1]);
 
-    // Initialize Y Axis
-    this.y2Axis = d3.axisRight(this.y2Scale)
-      // .tickFormat(d3.format(".0%"))
-      .tickSizeInner(10)
-      .tickSizeOuter(0)
-      .tickPadding(5)
-      .offset(-.5)
-      .tickValues([1, 2, 3, 4]);
-
-    this.y2_Axis_render_data = {
-      y_arr: [
-        this.y2Scale(4) - 1,
-        this.y2Scale(3) - 1,
-        this.y2Scale(2) - 1,
-      ],
-      height: [
-        this.y2Scale(3) - this.y2Scale(4),
-        this.y2Scale(2) - this.y2Scale(3),
-        this.y2Scale(1) - this.y2Scale(2),
-      ],
-      x: 0,
-      width: 10,
-    };
-
     // Booleans
-    this.isInitialized = false;
     this.statisticsVisible = false;
     this.popupVisible = false;
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // Append this.yAxis to this.svg
+    // @ts-ignore
+    this.svg.select('.y.axis').call(this.yAxis)
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
-
-    this.svg = d3.select(this.selector + ' svg')
-
-    this.isInitialized = true;
-
     // Update Title
-    if (changes['title'] && changes['title'].currentValue) {
+    if (hasChanged('title')) {
       this.title = changes['title'].currentValue;
     }
+    // TODO: Implement this
+    if(hasChanged('selector')) {
+      console.log("ERROR: \'selector\' cannot be changed")
+    }
 
-    if (changes['min_threshold'] && changes['min_threshold'].currentValue) {
+    if (hasChanged('min_threshold')) {
       this.min_threshold = changes['min_threshold'].currentValue;
     }
 
-    if (changes['medium_threshold'] && changes['medium_threshold'].currentValue) {
+    if (hasChanged('medium_threshold')) {
       this.medium_threshold = changes['medium_threshold'].currentValue;
     }
 
-    if (changes['high_threshold'] && changes['high_threshold'].currentValue) {
+    if (hasChanged('high_threshold')) {
       this.high_threshold = changes['high_threshold'].currentValue;
     }
 
-    if (changes['max_threshold'] && changes['max_threshold'].currentValue) {
+    if (hasChanged('max_threshold')) {
       this.max_threshold = changes['max_threshold'].currentValue;
     }
 
-
     // Update Data
-    if (changes['raw_data'] && changes['raw_data'].currentValue) {
+    if (hasChanged('raw_data')) {
+
+      this.svg = d3.select(this.selector + ' svg');
 
       this.raw_data = changes['raw_data'].currentValue;
 
-      if(!changes['raw_data'].firstChange){
+      if(!isFirstChange('raw_data')){
         // Clear Data
-        this.data.length = 0;
-        this.bar_render_data.length = 0;
-        this.area_path_data.length = 0;
-        this.break_path_data.length = 0;
-        this.mode_render_data.length = 0;
-        this.mean_render_data.length = 0;
-        // this.std_path_data.length = 0;
+        this.bar_data = [];
+        this.area_data = [];
+        this.break_data = [];
 
         // Remove pre-existing DOM elements
         this.svg.select('.x.axis').selectAll().remove();
-        this.svg.select('.y.axis').selectAll().remove();
         this.svg.select('.data').selectAll().remove();
       }
 
-      // Format raw data, store in data
-      for (let datum of this.raw_data) {
-        const total_percent: number = +datum.percent_green + +datum.percent_yellow + +datum.percent_red;
-        this.data.push({
-          date: new Date(+datum.video_year, +datum.video_month - 1, +datum.video_date),
-          lower_divider: +datum.percent_green / total_percent,
-          upper_divider: (+datum.percent_green + +datum.percent_yellow) / total_percent,
-          means: [datum.mean_green || NaN, datum.mean_yellow || NaN, datum.mean_red || NaN],
-          stds: [datum.std_green || NaN, datum.std_yellow || NaN, datum.std_red || NaN],
-          modes: [datum.mode_green || NaN, datum.mode_yellow || NaN, datum.mode_red || NaN],
-          count_videos: +datum.count_videos
+      this.raw_data.sort((a: R_DataEntry, b: R_DataEntry) => getDateFromRawDatum(a).valueOf() - getDateFromRawDatum(b).valueOf());
+
+      let x_domain = this.raw_data.map((datum: R_DataEntry) => this.timeFormat(getDateFromRawDatum(datum)))
+
+      this.xScale.domain(x_domain);
+
+      // Initialize the padding/band widths
+      this.bandWidth = this.xScale.bandwidth();
+      this.paddingWidth = (this.width - this.margin.left - this.margin.right) / (this.raw_data.length - this.xScale.padding()) * this.xScale.padding();
+
+      for(let datum of this.raw_data){
+        const x = this.xScale(this.timeFormat(getDateFromRawDatum(datum))) || 0;
+        const y = [this.yScale(0),
+          this.yScale(normalizePercentageFromRawDatum(+datum.percent_green, datum)),
+          this.yScale(normalizePercentageFromRawDatum(+datum.percent_green + +datum.percent_yellow, datum)),
+          this.yScale(1)];
+        const raw_means = [datum.mean_green || NaN, datum.mean_yellow || NaN, datum.mean_red || NaN];
+        const raw_modes = [datum.mode_green || NaN, datum.mode_yellow || NaN, datum.mode_red || NaN];
+        const raw_stds = [datum.std_green || NaN, datum.std_yellow || NaN, datum.std_red || NaN];
+        // const count_videos = +datum.count_videos;
+        const thresholds = [this.min_threshold, this.medium_threshold, this.high_threshold, this.max_threshold];
+
+        const y_mean = [-1, -1, -1];
+        const y_mode = [-1, -1, -1];
+        for (let i = 0; i < this.MAIN_COLORS.length; i++) {
+          if (raw_means[i]) {
+            const pixels_height = y[i] - y[i+1];
+            const stats_height = thresholds[i + 1] - thresholds[i];
+            y_mean[i] = y[i] - (pixels_height * ((raw_means[i] - thresholds[i]) / stats_height)) - 1;
+            if (raw_means[i] < this.min_threshold + 0.1) {
+              y_mean[i] = y[i] - (pixels_height * ((this.min_threshold + 0.1 - thresholds[i]) / stats_height)) - 1;
+            }
+            if (raw_means[i] > this.max_threshold - 0.1) {
+              y_mean[i] = y[i] - (pixels_height * ((this.max_threshold - 0.1 - thresholds[i]) / stats_height)) - 1;
+            }
+          }
+          if (raw_modes[i]) {
+            const pixels_height = y[i] - y[i+1];
+            const stats_height = thresholds[i + 1] - thresholds[i];
+            y_mode[i] = y[i] - (pixels_height * ((raw_modes[i] - thresholds[i]) / stats_height)) - 1;
+            if (raw_modes[i] < this.min_threshold + 0.1) {
+              y_mode[i] = y[i] - (pixels_height * ((this.min_threshold + 0.1 - thresholds[i]) / stats_height)) - 1;
+            }
+            if (raw_modes[i] > this.max_threshold - 0.1) {
+              y_mode[i] = y[i] - (pixels_height * ((this.max_threshold - 0.1 - thresholds[i]) / stats_height)) - 1;
+            }
+          }
+        }
+
+        this.bar_data.push({
+          date: getDateFromRawDatum(datum),
+          x: x,
+          y_bar: y,
+          raw_mean: raw_means,
+          y_mean: y_mean,
+          raw_mode: raw_modes,
+          y_mode: y_mode,
+          raw_std: raw_stds,
+          // count_videos: count_videos,
         });
       }
 
-      // Sort formatted data
-      this.data.sort((a: F_DataEntry, b: F_DataEntry) => a.date.valueOf() - b.date.valueOf())
+      for(let datum of this.bar_data){
+        const thresholds = [this.min_threshold, this.medium_threshold, this.high_threshold, this.max_threshold];
+        const y_text = [datum.y_bar[0] - 3, datum.y_bar[1] + 5, datum.y_bar[2] + 5, datum.y_bar[3] + 13];
 
-      // Add domain to xScale
-      this.xScale
-        .domain(this.data.map(a => this.timeFormat(a.date)))
+        if(y_text[0] - y_text[1] < 16){
+          if(y_text[1] - y_text[2] < 16){
+            y_text[2] = y_text[0] - 32;
+          }
+          y_text[1] = y_text[0] - 16;
+        }
+
+        if(y_text[2] - y_text[3] < 16){
+          if(y_text[1] - y_text[2] < 16){
+            y_text[1] = y_text[3] + 32;
+          }
+          y_text[2] = y_text[3] + 16;
+        }
+
+        if(y_text[1] - y_text[2] < 16){
+          if(y_text[2] - y_text[3] < 24){
+            y_text[1] = y_text[2] + 16;
+          } else {
+            if(y_text[0] - y_text[1] < 24){
+              y_text[2] = y_text[1] - 16;
+            } else {
+              y_text[1] += 8;
+              y_text[2] -= 8;
+            }
+          }
+
+        }
+
+        const threshold_paths = [];
+        for(let [i, threshold] of thresholds.entries()){
+          const path = d3.path();
+          path.moveTo(datum.x + this.bandWidth, datum.y_bar[i]);
+          path.lineTo(datum.x + this.bandWidth + 2, y_text[i] - 5);
+          path.closePath();
+          threshold_paths.push(path.toString());
+        }
+        this.threshold_data.push({x: datum.x, y: y_text, path: threshold_paths});
+      }
+
+      // Create an array of area paths
+      for (let i = 0; i < this.bar_data.length - 1; i++) {
+        const x = this.bar_data[i].x + this.bandWidth;
+        if (incrementDate(this.bar_data[i].date).getTime() == this.bar_data[i+1].date.getTime()) {
+          const pathData = [];
+
+          for (let j = 0; j < this.SECONDARY_COLORS.length; j++) {
+            const path = d3.path();
+            path.moveTo(x, this.bar_data[i].y_bar[j] - 1);
+            path.lineTo(x + this.paddingWidth, this.bar_data[i+1].y_bar[j] - 1);
+            path.lineTo(x + this.paddingWidth, this.bar_data[i+1].y_bar[j + 1] - 1);
+            path.lineTo(x, this.bar_data[i].y_bar[j + 1] - 1);
+            path.closePath();
+            pathData.push(path.toString());
+          }
+
+          this.area_data.push(pathData);
+        } else {
+          const x_rad = (this.paddingWidth < 80) ? this.paddingWidth / 8 : 10;
+          const x_center = x + (this.paddingWidth / 2);
+          const path = d3.path();
+          path.moveTo(x_center, this.yScale(0));
+          for (let i = 0; i < 16; i++) {
+            path.lineTo(x_center + x_rad, this.yScale(0.015625 + (.0625 * i)) - 1);
+            path.lineTo(x_center, this.yScale(0.03125 + (.0625 * i)) - 1);
+            path.lineTo(x_center - x_rad, this.yScale(0.046875 + (.0625 * i)) - 1);
+            path.lineTo(x_center, this.yScale((.0625 * (i + 1))) - 1);
+          }
+          path.moveTo(x_center, this.yScale(0));
+          path.closePath();
+          this.break_data.push(path.toString());
+        }
+      }
 
       // Append x-axis
       //@ts-ignore
       this.svg.select('.x.axis').call(this.xAxis)
         .selectAll('.tick text')
         .call(wrap);
-
-      // Append this.y1Axis to this.svg
-      // @ts-ignore
-      this.svg.select('.y1.axis').call(this.y1Axis)
-
-      // Append this.y2Axis to this.svg
-      // @ts-ignore
-      this.svg.select('.y2.axis').call(this.y2Axis)
-
-
-      // Initialize the padding/band widths
-      this.bandWidth = this.xScale.bandwidth();
-      this.paddingWidth = (this.width - this.margin.left - this.margin.right) / (this.data.length - this.xScale.padding()) * this.xScale.padding();
-
-      // Create an array of rectangle paths
-      for(let datum of this.data) {
-        const y = [
-          this.y1Scale(datum.lower_divider) - 1,
-          this.y1Scale(datum.upper_divider) - 1,
-          this.y1Scale(1) - 1,
-        ];
-        const height = [
-          this.y1Scale(0) - this.y1Scale(datum.lower_divider),
-          this.y1Scale(datum.lower_divider) - this.y1Scale(datum.upper_divider),
-          this.y1Scale(datum.upper_divider) - this.y1Scale(1),
-        ];
-        const x = this.xScale(this.timeFormat(datum.date))!;
-        const width = this.bandWidth;
-        this.bar_render_data.push({y: y, height: height, x: x, width: width, datum: datum});
-      }
-
-      // Create an array of paths for modes
-      for (let datum of this.data) {
-        const mode_heights: number[] = [-1, -1, -1];
-        const x = this.xScale(this.timeFormat(datum.date))!;
-        const dividers = [this.y1Scale(0), this.y1Scale(datum.lower_divider), this.y1Scale(datum.upper_divider), this.y1Scale(1)];
-        const THRESHOLDS = [this.min_threshold, this.medium_threshold, this.high_threshold, this.max_threshold];
-        for (let i = 0; i < this.MAIN_COLORS.length; i++) {
-          if (datum.modes[i]) {
-            const pixels_height = dividers[i] - dividers[i + 1];
-            const stats_height = THRESHOLDS[i + 1] - THRESHOLDS[i];
-            mode_heights[i] = dividers[i] - (pixels_height * ((datum.modes[i] - THRESHOLDS[i]) / stats_height)) - 1;
-            if (datum.means[i] < this.min_threshold + 0.1) {
-              mode_heights[i] = dividers[i] - (pixels_height * ((this.min_threshold + 0.1 - THRESHOLDS[i]) / stats_height)) - 1;
-            }
-            if (datum.modes[i] > this.max_threshold - 0.1) {
-              mode_heights[i] = dividers[i] - (pixels_height * ((this.max_threshold - 0.1 - THRESHOLDS[i]) / stats_height)) - 1;
-            }
-          }
-        }
-        this.mode_render_data.push({y_arr: mode_heights, x1: x, x2: x+this.bandWidth, datum: datum});
-      }
-
-      // Create an array of paths for means
-      for (let datum of this.data) {
-        const mean_heights: number[] = [-1, -1, -1];
-        const x = this.xScale(this.timeFormat(datum.date))!;
-        const dividers = [this.y1Scale(0), this.y1Scale(datum.lower_divider), this.y1Scale(datum.upper_divider), this.y1Scale(1)];
-        const THRESHOLDS = [this.min_threshold, this.medium_threshold, this.high_threshold, this.max_threshold];
-        for (let i = 0; i < this.MAIN_COLORS.length; i++) {
-          if (datum.means[i]) {
-            const pixels_height = dividers[i] - dividers[i + 1];
-            const stats_height = THRESHOLDS[i + 1] - THRESHOLDS[i];
-            mean_heights[i] = dividers[i] - (pixels_height * ((datum.means[i] - THRESHOLDS[i]) / stats_height)) - 1;
-            if (datum.means[i] < this.min_threshold + 0.1) {
-              mean_heights[i] = dividers[i] - (pixels_height * ((this.min_threshold + 0.1 - THRESHOLDS[i]) / stats_height)) - 1;
-            }
-            if (datum.modes[i] > this.max_threshold - 0.1) {
-              mean_heights[i] = dividers[i] - (pixels_height * ((this.max_threshold - 0.1 - THRESHOLDS[i]) / stats_height)) - 1;
-            }
-          }
-        }
-        this.mean_render_data.push({y_arr: mean_heights, x1: x, x2: x+this.bandWidth, datum: datum});
-      }
-
-      // Create an array of area paths
-      for(let i=0; i < this.data.length-1; i++) {
-        const x = this.xScale(this.timeFormat(this.data[i].date))! + this.bandWidth;
-        if(increment(this.data[i].date).getTime() == this.data[i+1].date.getTime()) {
-          const left_dividers = [this.y1Scale(0), this.y1Scale(this.data[i].lower_divider), this.y1Scale(this.data[i].upper_divider), this.y1Scale(1)];
-          const right_dividers = [this.y1Scale(0), this.y1Scale(this.data[i+1].lower_divider), this.y1Scale(this.data[i+1].upper_divider), this.y1Scale(1)];
-          const paths = [];
-
-          for(let j = 0; j < this.SECONDARY_COLORS.length; j++){
-            const path = d3.path();
-            path.moveTo(x, left_dividers[j] - 1);
-            path.lineTo(x + this.paddingWidth, right_dividers[j] - 1);
-            path.lineTo(x + this.paddingWidth, right_dividers[j+1] - 1);
-            path.lineTo(x, left_dividers[j+1] - 1);
-            path.closePath();
-            paths.push(path.toString());
-          }
-
-          this.area_path_data.push({paths: paths, x: x, datums: [this.data[i], this.data[i+1]]});
-        } else {
-          const path = d3.path();
-          const x_rad = this.paddingWidth / 8;
-          const x_center = x + (this.paddingWidth / 2);
-          path.moveTo(x_center, this.y1Scale(0));
-          for (let i = 0; i < 16; i++) {
-            path.lineTo(x_center + x_rad, this.y1Scale(0.015625 + (.0625 * i)) - 1);
-            path.lineTo(x_center, this.y1Scale(0.03125 + (.0625 * i)) - 1);
-            path.lineTo(x_center - x_rad, this.y1Scale(0.046875 + (.0625 * i)) - 1);
-            path.lineTo(x_center, this.y1Scale((.0625 * (i + 1))) - 1);
-          }
-          path.moveTo(x_center, this.y1Scale(0));
-          path.closePath();
-
-          this.break_path_data.push({path: path.toString(), x: x_center});
-        }
-      }
-
-      this.svg.selectAll('.y2.axis text').text((d, i) => {
-        return ([this.min_threshold, this.medium_threshold, this.high_threshold, this.max_threshold][i] + '°');
-      });
     }
 
 
@@ -365,38 +327,68 @@ export class DailyTrendChartComponent implements OnInit {
     function wrap(text: d3.Selection<d3.BaseType, unknown, d3.BaseType, any>): void {
       // @ts-ignore
       text.each(function (t: string) {
-        let words: string[] = t.split(', ');
+        let words: string[] = t.split(' ');
         let lineNumber: number = 0;
         let lineHeight: number = 1.1;
         let y: string = text.attr('y');
         let dy: number = parseFloat(text.attr('dy'));
-        d3.select(this).text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em").text(words[0] + ',');
+        d3.select(this).text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em").text(words[0]);
         d3.select(this).append('tspan').attr("x", 0).attr("y", y).attr("dy", `${++lineNumber * lineHeight + dy}em`).text(words[1]);
       })
     }
 
-    function increment(dt: Date): Date {
-        let dt_new = new Date(dt);
+    function hasChanged(property: string): boolean {
+      return (changes[property] && changes[property].currentValue);
+    }
 
-        dt_new.setDate(dt.getDate() + 1);
+    function isFirstChange(property: string): boolean {
+      if(!hasChanged(property)){
+        return false;
+      }
+      return (changes[property].isFirstChange());
+    }
 
-        return dt_new;
+    function getDateFromRawDatum(datum: R_DataEntry): Date {
+      return new Date(+datum.video_year, +datum.video_month - 1, +datum.video_date);
+    }
+
+    function normalizePercentageFromRawDatum(percentage: number, datum: R_DataEntry): number {
+      if(percentage < 0 || percentage > 1 || !datum){
+        return -1;
+      }
+
+      return(percentage / (datum.percent_green + datum.percent_yellow + datum.percent_red));
+    }
+
+    function incrementDate(date: Date): Date {
+      let date_new = new Date(date);
+
+      date_new.setDate(date.getDate() + 1);
+
+      return date_new;
     }
   }
 
-  public showPopup(event: MouseEvent, x: number, datum: F_DataEntry, component: DailyTrendChartComponent): void {
+  ngOnDestroy() {
+    // Remove pre-existing DOM elements
+    this.svg.select('.x.axis').selectAll().remove();
+    this.svg.select('.y.axis').selectAll().remove();
+    this.svg.select('.data').selectAll().remove();
+  }
+
+  public showPopup(event: MouseEvent, datum: F_Bar_Data_Entry, component: DailyTrendChartComponent): void {
     event.stopPropagation();
 
-    if(!this.isInitialized || !this.statisticsVisible) {
+    if(!this.statisticsVisible) {
       return;
     }
 
-    this.svg.select('.popup').attr('transform', `translate(${x - 5 + (this.bandWidth/2)}, 25)`);
+    this.svg.select('.popup').attr('transform', `translate(${datum.x - 5 + (this.bandWidth/2)}, 25)`);
     this.svg.selectAll('.popup text').each(function(d, j){
       d3.select(this).text(`
-          μ: ${datum.means[2 - j].toFixed(2).replace("NaN", "N/A")},
-          d: ${datum.modes[2 - j].toFixed(2).replace("NaN", "N/A")},
-          σ: ${datum.stds[2 - j].toFixed(2).replace("NaN", "N/A")}
+          μ: ${datum.raw_mean[2 - j].toFixed(2).replace("NaN", "N/A")},
+          d: ${datum.raw_mode[2 - j].toFixed(2).replace("NaN", "N/A")},
+          σ: ${datum.raw_std[2 - j].toFixed(2).replace("NaN", "N/A")}
       `)
     });
     this.popupVisible = true;
@@ -404,10 +396,6 @@ export class DailyTrendChartComponent implements OnInit {
 
   // Hide the popup if the svg is initialized and the selection isn't in the popup
   public hidePopup(): void {
-    if(!this.isInitialized){
-      return;
-    }
-
     this.svg.selectAll('.popup text').each(function(d, j){
       d3.select(this).text('');
     });

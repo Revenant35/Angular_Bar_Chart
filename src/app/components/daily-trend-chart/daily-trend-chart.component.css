@@ -3,7 +3,7 @@
 .daily-trend-chart text{
   font-family: 'Comfortaa', cursive;
   fill: black;
-  font-size: 1rem;
+  font-size: 16px;
 }
 
 .daily-trend-chart  {
@@ -56,16 +56,14 @@
   stroke: black;
   stroke-width: 2px;
   fill: none;
-  shape-rendering: geometricPrecision;
 }
 
 .daily-trend-chart .mode {
   stroke: black;
   stroke-width: 1px;
   fill: none;
-  opacity: 100%;
-  shape-rendering: geometricPrecision;
   stroke-dasharray: 6px;
+
 }
 /*********/
 
@@ -112,11 +110,22 @@
   opacity: 100%;
 }
 
+.daily-trend-chart .columns text {
+  font-size: .8rem;
+}
+
+
 .daily-trend-chart .areas{
   opacity: 70%;
 }
 
-.daily-trend-chart .breaks .group .item {
+.daily-trend-chart .breaks path {
+  stroke: black;
+  stroke-width: .5;
+  fill: none;
+}
+
+.daily-trend-chart .thresholds path {
   stroke: black;
   stroke-width: 1;
   fill: none;
