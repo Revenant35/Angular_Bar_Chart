@@ -1,8 +1,8 @@
 import {Component, Input, OnChanges, OnDestroy, OnInit, SimpleChange, SimpleChanges, ViewEncapsulation} from '@angular/core';
+import {NgForm} from '@angular/forms';
 import {F_Bar_Data_Entry} from "./formatted-bar-data-entry";
 import {R_DataEntry} from "./raw-data-entry";
 import * as d3 from 'd3';
-import * as path from "path";
 
 @Component({
   selector: 'app-monthly-trend-chart',
@@ -129,32 +129,32 @@ export class MonthlyTrendChartComponent implements OnInit, OnChanges, OnDestroy 
   ngOnInit(): void {
     // Append this.yAxis to this.svg
     // @ts-ignore
-    this.svg.select('.y.axis').call(this.yAxis)
+    this.svg.select('.y.axis').call(this.yAxis);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     // Update Title
-    if (hasChanged('title')) {
+    if (hasChanged('title') && !isFirstChange('title')) {
       this.title = changes['title'].currentValue;
     }
     // TODO: Implement this
-    if(hasChanged('selector')) {
+    if(hasChanged('selector') && !isFirstChange('selector')) {
       console.log("ERROR: \'selector\' cannot be changed")
     }
 
-    if (hasChanged('min_threshold')) {
+    if (hasChanged('min_threshold') && !isFirstChange('min_threshold')) {
       this.min_threshold = changes['min_threshold'].currentValue;
     }
 
-    if (hasChanged('medium_threshold')) {
+    if (hasChanged('medium_threshold') && !isFirstChange('medium_threshold')) {
       this.medium_threshold = changes['medium_threshold'].currentValue;
     }
 
-    if (hasChanged('high_threshold')) {
+    if (hasChanged('high_threshold') && !isFirstChange('high_threshold')) {
       this.high_threshold = changes['high_threshold'].currentValue;
     }
 
-    if (hasChanged('max_threshold')) {
+    if (hasChanged('max_threshold') && !isFirstChange('max_threshold')) {
       this.max_threshold = changes['max_threshold'].currentValue;
     }
 
@@ -170,6 +170,7 @@ export class MonthlyTrendChartComponent implements OnInit, OnChanges, OnDestroy 
         this.bar_data = [];
         this.area_data = [];
         this.break_data = [];
+        this.threshold_data = [];
 
         // Remove pre-existing DOM elements
         this.svg.select('.x.axis').selectAll().remove();
@@ -388,5 +389,55 @@ export class MonthlyTrendChartComponent implements OnInit, OnChanges, OnDestroy 
     });
 
     this.popupVisible = false;
+  }
+
+  public onSubmit(form: NgForm): void {
+    let ERROR_FLAG = false;
+
+    if(form.invalid){
+      return;
+    }
+
+    const new_medium_threshold = parseInt(form.value.medium_threshold)
+    const new_high_threshold = parseInt(form.value.high_threshold)
+
+    console.log(form)
+    console.log(new_medium_threshold)
+    console.log(new_high_threshold)
+
+    if(isNaN(new_medium_threshold)){
+      console.error(`ERROR: Medium treshold must be a valid integer`);
+      ERROR_FLAG = true;
+    }
+
+    if(isNaN(new_high_threshold)){
+      console.error(`ERROR: High treshold must be a valid integer`);
+      ERROR_FLAG = true;
+    }
+
+    if(ERROR_FLAG)
+      return;
+
+    if(new_medium_threshold <= this.min_threshold || new_medium_threshold >= this.max_threshold){
+      console.error(`ERROR: Medium threshold (${new_medium_threshold}) out of range (${this.min_threshold}, ${this.max_threshold})`);
+      ERROR_FLAG = true;
+    }
+
+    if(new_high_threshold <= this.min_threshold || new_high_threshold >= this.max_threshold){
+      console.error(`ERROR: High threshold (${new_high_threshold}) out of range (${this.min_threshold}, ${this.max_threshold})`);
+      ERROR_FLAG = true;
+    }
+
+    if(ERROR_FLAG)
+      return;
+
+    if(new_medium_threshold >= new_high_threshold){
+      console.error(`ERROR: Medium threshold cannot be greater than high threshold`);
+      return;
+    }
+
+    this.medium_threshold = new_medium_threshold;
+    this.high_threshold = new_high_threshold;
+    console.log('Success!');
   }
 }
