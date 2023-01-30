@@ -92,9 +92,9 @@
   </g>
 </svg>
 <form #userlogin="ngForm" (ngSubmit)="onSubmit(userlogin)" >
-  <input inputmode="numeric" name="medium_threshold" [placeholder]="medium_threshold + '°'" step="1"  [value]="medium_threshold" [min]="min_threshold+1" [max]="max_threshold-1" ngModel required>
+  <input inputmode="numeric" name="medium_threshold" [placeholder]="medium_threshold + '°'" step="1"  [value]="medium_threshold" [min]="min_threshold+1" [max]="max_threshold-1" #medth="ngModel" ngModel required>
   <br/>
-  <input inputmode="numeric" name="high_threshold" [placeholder]="high_threshold + '°'" step="1" [value]="high_threshold" [min]="min_threshold+1" [max]="max_threshold-1" ngModel required>
+  <input inputmode="numeric" name="high_threshold" [placeholder]="high_threshold + '°'" step="1" [value]="high_threshold" [min]="min_threshold+1" [max]="max_threshold-1" #hith="ngModel" ngModel required>
   <br/>
   <input type = "submit" value = "Run Analysis">
 </form>

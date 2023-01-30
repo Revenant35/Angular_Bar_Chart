@@ -170,6 +170,7 @@ export class WeeklyTrendChartComponent implements OnInit {
         this.bar_data = [];
         this.area_data = [];
         this.break_data = [];
+        this.threshold_data = [];
 
         // Remove pre-existing DOM elements
         this.svg.select('.x.axis').selectAll().remove();

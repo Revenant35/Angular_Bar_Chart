@@ -330,10 +330,7 @@ export class MonthlyTrendChartComponent implements OnInit, OnChanges, OnDestroy 
     }
 
     function isFirstChange(property: string): boolean {
-      if(!hasChanged(property)){
-        return false;
-      }
-      return (changes[property].isFirstChange());
+      return hasChanged(property) && changes[property].isFirstChange();
     }
 
     function getDateFromRawDatum(datum: R_DataEntry): Date {
